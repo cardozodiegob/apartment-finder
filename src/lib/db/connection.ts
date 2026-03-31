@@ -32,8 +32,15 @@ if (!global.mongooseCache) {
   global.mongooseCache = cached;
 }
 
+let adminSeeded = false;
+
 async function dbConnect(): Promise<typeof mongoose> {
   if (cached.conn) {
+    if (!adminSeeded) {
+      adminSeeded = true;
+      const { seedInitialAdmin } = await import("@/lib/api/admin-middleware");
+      seedInitialAdmin().catch((err) => console.error("Admin seed error:", err));
+    }
     return cached.conn;
   }
 
@@ -46,6 +53,13 @@ async function dbConnect(): Promise<typeof mongoose> {
   }
 
   cached.conn = await cached.promise;
+
+  if (!adminSeeded) {
+    adminSeeded = true;
+    const { seedInitialAdmin } = await import("@/lib/api/admin-middleware");
+    seedInitialAdmin().catch((err) => console.error("Admin seed error:", err));
+  }
+
   return cached.conn;
 }
 

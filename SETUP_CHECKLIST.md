@@ -1,4 +1,4 @@
-# Apartment Finder — Setup Checklist
+let's# Apartment Finder — Setup Checklist
 
 Work through these one at a time. After each step, tell me "done" and I'll verify.
 
@@ -19,12 +19,11 @@ Work through these one at a time. After each step, tell me "done" and I'll verif
 
 ## MongoDB Atlas
 
-- [ ] 9. Create a MongoDB Atlas account (mongodb.com/atlas)
-- [ ] 10. Create a free cluster in an EU region (e.g., Frankfurt, Ireland)
-- [ ] 11. Create a database user with read/write access
-- [ ] 12. Whitelist your IP (or 0.0.0.0/0 for dev)
-- [ ] 13. Copy the connection string to `.env.local` MONGODB_URI
-  - Format: `mongodb+srv://<user>:<password>@<cluster>.mongodb.net/apartment-finder`
+- [x] 9. Create a MongoDB Atlas account (mongodb.com/atlas)
+- [x] 10. Create a free cluster in an EU region (e.g., Frankfurt, Ireland)
+- [x] 11. Create a database user with read/write access
+- [x] 12. Whitelist your IP (or 0.0.0.0/0 for dev)
+- [x] 13. Copy the connection string to `.env.local` MONGODB_URI
 
 ---
 
@@ -40,23 +39,23 @@ Work through these one at a time. After each step, tell me "done" and I'll verif
 
 ## Resend (transactional email)
 
-- [ ] 19. Create a Resend account (resend.com)
-- [ ] 20. Get API key and paste into `.env.local` RESEND_API_KEY
+- [x] 19. Create a Resend account (resend.com)
+- [x] 20. Get API key and paste into `.env.local` RESEND_API_KEY
 - [ ] 21. (Later) Verify your sending domain for production
 
 ---
 
 ## Exchange Rate API
 
-- [ ] 22. Sign up at exchangerate-api.com (free tier works)
-- [ ] 23. Copy API key to `.env.local` EXCHANGE_RATE_API_KEY
+- [x] 22. Sign up at exchangerate-api.com (free tier works)
+- [x] 23. Copy API key to `.env.local` EXCHANGE_RATE_API_KEY
 
 ---
 
 ## Initial Admin
 
-- [ ] 24. Set INITIAL_ADMIN_EMAIL in `.env.local`
-- [ ] 25. Set INITIAL_ADMIN_PASSWORD in `.env.local`
+- [x] 24. Set INITIAL_ADMIN_EMAIL in `.env.local`
+- [x] 25. Set INITIAL_ADMIN_PASSWORD in `.env.local`
 
 ---
 
