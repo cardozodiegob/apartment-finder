@@ -1,0 +1,32 @@
+{
+  "nav": {
+    "home": "Home",
+    "search": "Search",
+    "listings": "Listings",
+    "login": "Log In",
+    "register": "Register",
+    "admin": "Admin Panel"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit"
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "login": "Log In",
+    "register": "Register",
+    "forgotPassword": "Forgot Password?"
+  },
+  "listings": {
+    "title": "Title",
+    "description": "Description",
+    "price": "Price",
+    "location": "Location",
+    "filters": "Filters"
+  }
+}

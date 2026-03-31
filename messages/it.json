@@ -1,0 +1,32 @@
+{
+  "nav": {
+    "home": "Home",
+    "search": "Cerca",
+    "listings": "Annunci",
+    "login": "Accedi",
+    "register": "Registrati",
+    "admin": "Pannello Admin"
+  },
+  "common": {
+    "loading": "Caricamento...",
+    "error": "Si è verificato un errore",
+    "save": "Salva",
+    "cancel": "Annulla",
+    "delete": "Elimina",
+    "edit": "Modifica"
+  },
+  "auth": {
+    "email": "E-mail",
+    "password": "Password",
+    "login": "Accedi",
+    "register": "Registrati",
+    "forgotPassword": "Password dimenticata?"
+  },
+  "listings": {
+    "title": "Titolo",
+    "description": "Descrizione",
+    "price": "Prezzo",
+    "location": "Posizione",
+    "filters": "Filtri"
+  }
+}
