@@ -1,0 +1,32 @@
+{
+  "nav": {
+    "home": "Início",
+    "search": "Pesquisar",
+    "listings": "Anúncios",
+    "login": "Entrar",
+    "register": "Registrar",
+    "admin": "Painel Admin"
+  },
+  "common": {
+    "loading": "Carregando...",
+    "error": "Ocorreu um erro",
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "edit": "Editar"
+  },
+  "auth": {
+    "email": "E-mail",
+    "password": "Senha",
+    "login": "Entrar",
+    "register": "Registrar",
+    "forgotPassword": "Esqueceu a senha?"
+  },
+  "listings": {
+    "title": "Título",
+    "description": "Descrição",
+    "price": "Preço",
+    "location": "Localização",
+    "filters": "Filtros"
+  }
+}

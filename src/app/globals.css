@@ -1,0 +1,152 @@
+@import "tailwindcss";
+
+/* ============================================
+   Tailwind CSS v4 Theme Configuration
+   Apple-style modern UI with glassmorphism
+   ============================================ */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Navy / Dark Blue Palette */
+  --color-navy-50: #eef2ff;
+  --color-navy-100: #dce4ff;
+  --color-navy-200: #b9c9ff;
+  --color-navy-300: #8ba6ff;
+  --color-navy-400: #5c7cff;
+  --color-navy-500: #3b5bdb;
+  --color-navy-600: #2b44b8;
+  --color-navy-700: #1e3394;
+  --color-navy-800: #142470;
+  --color-navy-900: #0c1754;
+  --color-navy-950: #060c2e;
+
+  /* Glass effect colors (semi-transparent) */
+  --color-glass-white: rgba(255, 255, 255, 0.12);
+  --color-glass-white-light: rgba(255, 255, 255, 0.06);
+  --color-glass-white-heavy: rgba(255, 255, 255, 0.24);
+  --color-glass-dark: rgba(6, 12, 46, 0.6);
+  --color-glass-dark-light: rgba(6, 12, 46, 0.3);
+  --color-glass-dark-heavy: rgba(6, 12, 46, 0.8);
+  --color-glass-border-light: rgba(255, 255, 255, 0.18);
+  --color-glass-border-dark: rgba(6, 12, 46, 0.18);
+
+  /* Backdrop blur tokens */
+  --backdrop-blur-glass-sm: 8px;
+  --backdrop-blur-glass: 16px;
+  --backdrop-blur-glass-lg: 24px;
+  --backdrop-blur-glass-xl: 40px;
+}
+
+/* ============================================
+   CSS Custom Properties for Theme Tokens
+   ============================================ */
+
+:root {
+  /* Backgrounds */
+  --background: #ffffff;
+  --background-secondary: #f8f9fc;
+  --foreground: #0c1754;
+
+  /* Surface colors */
+  --surface: #ffffff;
+  --surface-elevated: #ffffff;
+
+  /* Text */
+  --text-primary: #0c1754;
+  --text-secondary: #3b5bdb;
+  --text-muted: #8ba6ff;
+
+  /* Borders */
+  --border: rgba(6, 12, 46, 0.12);
+  --border-strong: rgba(6, 12, 46, 0.24);
+
+  /* Glass (light mode) */
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(6, 12, 46, 0.1);
+  --glass-shadow: 0 8px 32px rgba(6, 12, 46, 0.08);
+}
+
+.dark {
+  /* Backgrounds */
+  --background: #060c2e;
+  --background-secondary: #0c1754;
+  --foreground: #eef2ff;
+
+  /* Surface colors */
+  --surface: #142470;
+  --surface-elevated: #1e3394;
+
+  /* Text */
+  --text-primary: #eef2ff;
+  --text-secondary: #b9c9ff;
+  --text-muted: #5c7cff;
+
+  /* Borders */
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.2);
+
+  /* Glass (dark mode) */
+  --glass-bg: rgba(6, 12, 46, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* ============================================
+   Base Styles
+   ============================================ */
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-geist-sans, system-ui, -apple-system, sans-serif);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ============================================
+   Glassmorphism Component Classes
+   ============================================ */
+
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.glass-sm {
+  background: var(--glass-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.glass-lg {
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  border-radius: 1rem;
+  padding: 1.5rem;
+}
+
+.glass-nav {
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
