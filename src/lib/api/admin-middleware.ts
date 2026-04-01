@@ -51,29 +51,41 @@ export async function seedInitialAdmin(): Promise<void> {
     }
   }
 
-  // Create Supabase auth user with confirmed email
+  // Create Supabase auth user with confirmed email so admin can log in immediately
   const { data, error } = await supabaseAdmin.auth.admin.createUser({
     email: adminEmail,
     password: adminPassword,
     email_confirm: true,
   });
 
-  if (error || !data.user) {
-    // User might already exist in Supabase but not in MongoDB — try to find them
-    const { data: listData } = await supabaseAdmin.auth.admin.listUsers();
-    const supaUser = listData?.users?.find((u) => u.email === adminEmail);
-    if (supaUser) {
-      await User.create({
-        supabaseId: supaUser.id,
-        email: adminEmail,
-        fullName: adminName,
-        role: "admin",
-        preferredLanguage: "en",
-        preferredCurrency: "EUR",
-      });
-      return;
+  if (error) {
+    // User already exists in Supabase (409) but not in MongoDB — look them up
+    if (error.message?.toLowerCase().includes("already") || error.status === 422) {
+      const { data: listData } = await supabaseAdmin.auth.admin.listUsers();
+      const supaUser = listData?.users?.find((u) => u.email === adminEmail);
+      if (supaUser) {
+        // Ensure the password is correct and email is confirmed
+        await supabaseAdmin.auth.admin.updateUserById(supaUser.id, {
+          password: adminPassword,
+          email_confirm: true,
+        });
+        await User.create({
+          supabaseId: supaUser.id,
+          email: adminEmail,
+          fullName: adminName,
+          role: "admin",
+          preferredLanguage: "en",
+          preferredCurrency: "EUR",
+        });
+        return;
+      }
     }
-    console.error("Failed to seed admin in Supabase:", error?.message);
+    console.error("Failed to seed admin in Supabase:", error.message);
+    return;
+  }
+
+  if (!data.user) {
+    console.error("Failed to seed admin: no user returned from Supabase");
     return;
   }
 

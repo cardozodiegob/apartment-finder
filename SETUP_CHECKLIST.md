@@ -62,7 +62,7 @@ Work through these one at a time. After each step, tell me "done" and I'll verif
 ## GitHub Integration
 
 - [x] 26. Connect GitHub repo to Supabase (already shown in screenshot)
-- [ ] 27. Click "Enable integration" in Supabase GitHub settings
+- [x] 27. Click "Enable integration" in Supabase GitHub settings
 
 ---
 
@@ -76,3 +76,44 @@ Work through these one at a time. After each step, tell me "done" and I'll verif
 ---
 
 **Security reminder**: Never commit `.env.local` to git. It's already in `.gitignore`.
+
+---
+
+## Image Assets
+
+All icons use SVG components from `src/components/icons/index.tsx`. Photo placeholders use `https://placehold.co/` URLs. Replace placeholders with production assets before launch.
+
+### Icons (SVG — `src/components/icons/`)
+
+| Asset | Component | Size | Usage |
+|---|---|---|---|
+| App Logo | `LogoIcon` | 24–28px | Navbar, auth layout header |
+| Scam Protection | `ShieldIcon` | 40px (card), 16px (notification) | Homepage feature card, notification type indicator |
+| Dual-Party Payments | `HandshakeIcon` | 40px | Homepage feature card |
+| Trust Scores | `StarIcon` | 40px (card), 16px (notification) | Homepage feature card, notification type indicator |
+| Theme Toggle (Light) | `SunIcon` | 20px | Navbar, auth layout theme toggle |
+| Theme Toggle (Dark) | `MoonIcon` | 20px | Navbar, auth layout theme toggle |
+| Notifications | `BellIcon` | 20px (nav), 16px (panel) | Navbar bell button, notification panel default icon |
+| Search | `SearchIcon` | 24px | Search UI (available for use) |
+| Home / Navigation | `HomeIcon` | 24px | Navigation (available for use) |
+
+### Placeholder Images (replace with real assets for production)
+
+| Asset | Dimensions | Current URL / Path | Usage |
+|---|---|---|---|
+| Hero Background | 800×500 | `https://placehold.co/800x500/dce4ff/3b5bdb?text=Apartment+Finder` | Homepage hero section |
+| Listing Card Placeholder | 400×300 | `https://placehold.co/400x300/e2e8f0/64748b?text=No+Photo` | Homepage featured listings, search results, dashboard listings, listing detail page |
+| User Avatar Placeholder | 40×40 | (not yet added) | User profile page, message threads |
+
+### Production Assets Needed
+
+| Asset | Recommended Format | Dimensions | Notes |
+|---|---|---|---|
+| App Logo (full) | SVG | Scalable | Replace `LogoIcon` or add alongside for branding |
+| App Favicon | ICO / PNG | 16×16, 32×32, 180×180 | Add to `public/` directory |
+| Hero Background | WebP | 1920×1080 | Optimized photo for homepage parallax section |
+| Listing Placeholder | WebP | 400×300 | Fallback when listing has no uploaded photos |
+| User Avatar Placeholder | WebP or SVG | 80×80 | Default avatar for users without profile photo |
+| Trust Badge Icons | SVG | 24–32px | Bronze, Silver, Gold, Platinum badge variants |
+| Property Type Icons | SVG | 24px | Apartment, House, Studio, Shared, Room |
+| Notification Type Icons | SVG | 16–20px | Message, payment, scam alert, review, system |

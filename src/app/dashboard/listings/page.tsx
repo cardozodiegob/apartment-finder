@@ -15,7 +15,7 @@ interface ListingItem {
   createdAt: string;
 }
 
-const PLACEHOLDER_IMG = "/file.svg";
+const PLACEHOLDER_IMG = "https://placehold.co/400x300/e2e8f0/64748b?text=No+Photo";
 
 const STATUS_STYLES: Record<string, string> = {
   draft: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
@@ -41,7 +41,7 @@ export default function DashboardListingsPage() {
           setIsLoading(false);
           return;
         }
-        const userId = sessionData.session.user.id;
+        const userId = sessionData.session.user.mongoId;
         const statusParam = filter !== "all" ? `?status=${filter}` : "";
         const res = await fetch(`/api/listings/user/${userId}${statusParam}`);
         const data = await res.json();

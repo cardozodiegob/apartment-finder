@@ -1,15 +1,27 @@
-import { logout } from "@/lib/services/auth";
-import { ApiErrorResponse, errorResponse } from "@/lib/api/errors";
+import { errorResponse } from "@/lib/api/errors";
+import { cookies } from "next/headers";
 
 export async function POST() {
   try {
-    const result = await logout();
+    const cookieStore = await cookies();
 
-    if (result.error) {
-      throw new ApiErrorResponse("LOGOUT_FAILED", result.error, 500);
-    }
+    // Delete auth cookies by setting them with maxAge 0
+    cookieStore.set("sb-access-token", "", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 0,
+    });
+    cookieStore.set("sb-refresh-token", "", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 0,
+    });
 
-    return Response.json({ message: "Logged out successfully" });
+    return Response.json({ message: "Logged out" });
   } catch (error) {
     return errorResponse(error);
   }

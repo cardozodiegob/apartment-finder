@@ -1,15 +1,12 @@
 import { NextRequest } from "next/server";
 import { create } from "@/lib/services/listings";
 import { createListingSchema } from "@/lib/validations/listing";
-import { getSession } from "@/lib/services/auth";
+import { requireActiveUser } from "@/lib/api/session";
 import { ApiErrorResponse, errorResponse } from "@/lib/api/errors";
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession();
-    if (!session.session) {
-      throw new ApiErrorResponse("UNAUTHORIZED", "Authentication required", 401);
-    }
+    const user = await requireActiveUser();
 
     const body = await request.json();
     const parsed = createListingSchema.safeParse(body);
@@ -22,7 +19,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await create(parsed.data, session.session.user.id);
+    const result = await create(parsed.data, user.mongoId);
     if (result.error) {
       throw new ApiErrorResponse("CREATE_FAILED", result.error, 400);
     }

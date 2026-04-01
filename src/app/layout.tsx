@@ -4,6 +4,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import StoreProvider from "@/components/providers/StoreProvider";
 import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/Footer";
 import CookieConsentBanner from "@/components/privacy/CookieConsentBanner";
 import "./globals.css";
 
@@ -39,6 +40,7 @@ export default async function RootLayout({
           <StoreProvider>
             <Navbar />
             <main>{children}</main>
+            <Footer />
             <CookieConsentBanner />
           </StoreProvider>
         </NextIntlClientProvider>

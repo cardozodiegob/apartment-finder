@@ -40,6 +40,9 @@
 
 /* ============================================
    CSS Custom Properties for Theme Tokens
+   Color contrast has been audited for WCAG 2.1 AA (4.5:1 minimum).
+   --text-muted updated to #6b7280 (light) and #93a3d1 (dark) for compliance.
+   Note: Full WCAG compliance requires manual testing with assistive technologies.
    ============================================ */
 
 :root {
@@ -55,7 +58,7 @@
   /* Text */
   --text-primary: #0c1754;
   --text-secondary: #3b5bdb;
-  --text-muted: #8ba6ff;
+  --text-muted: #6b7280;
 
   /* Borders */
   --border: rgba(6, 12, 46, 0.12);
@@ -80,7 +83,7 @@
   /* Text */
   --text-primary: #eef2ff;
   --text-secondary: #b9c9ff;
-  --text-muted: #5c7cff;
+  --text-muted: #93a3d1;
 
   /* Borders */
   --border: rgba(255, 255, 255, 0.1);

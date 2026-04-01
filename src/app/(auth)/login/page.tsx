@@ -44,6 +44,8 @@ export default function LoginPage() {
         setServerError(data.message || "Login failed");
         return;
       }
+      // Force Next.js to re-fetch server data (picks up the new cookie)
+      router.refresh();
       router.push("/");
     } catch {
       setServerError("An unexpected error occurred");

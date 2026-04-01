@@ -1,16 +1,13 @@
-import { NextRequest } from "next/server";
 import User from "@/lib/db/models/User";
 import Listing from "@/lib/db/models/Listing";
 import Report from "@/lib/db/models/Report";
 import Payment from "@/lib/db/models/Payment";
-import { requireAdmin } from "@/lib/api/admin-middleware";
+import { requireAdmin } from "@/lib/api/session";
 import { errorResponse } from "@/lib/api/errors";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const url = new URL(request.url);
-    const adminId = url.searchParams.get("adminId") || "";
-    await requireAdmin(adminId);
+    const admin = await requireAdmin();
 
     const [totalUsers, activeListings, pendingReports, recentPayments] = await Promise.all([
       User.countDocuments(),

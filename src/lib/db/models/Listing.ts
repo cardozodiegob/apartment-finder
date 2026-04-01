@@ -42,6 +42,8 @@ export interface IListing extends Document {
   availableRooms?: number;
   status: "draft" | "active" | "under_review" | "archived";
   scamRiskLevel?: "low" | "medium" | "high";
+  expiresAt?: Date;
+  renewedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -122,6 +124,8 @@ const ListingSchema = new Schema<IListing>(
       type: String,
       enum: ["low", "medium", "high"],
     },
+    expiresAt: { type: Date },
+    renewedAt: { type: Date },
   },
   { timestamps: true }
 );
@@ -134,6 +138,9 @@ ListingSchema.index({ title: "text", description: "text", tags: "text" });
 
 // 2dsphere index for geographic queries
 ListingSchema.index({ location: "2dsphere" });
+
+// Compound index for user listing queries by poster and status
+ListingSchema.index({ posterId: 1, status: 1 });
 
 const Listing: Model<IListing> =
   mongoose.models.Listing || mongoose.model<IListing>("Listing", ListingSchema);

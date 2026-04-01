@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
-import { publish, getById } from "@/lib/services/listings";
+import { publish } from "@/lib/services/listings";
 import { analyzeListing } from "@/lib/services/scam-detection";
-import { getSession } from "@/lib/services/auth";
+import { requireActiveUser } from "@/lib/api/session";
 import { ApiErrorResponse, errorResponse } from "@/lib/api/errors";
 import Listing from "@/lib/db/models/Listing";
 
@@ -10,15 +10,12 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getSession();
-    if (!session.session) {
-      throw new ApiErrorResponse("UNAUTHORIZED", "Authentication required", 401);
-    }
+    const user = await requireActiveUser();
 
     const { id } = await params;
 
     // First publish (draft → active)
-    const result = await publish(id, session.session.user.id);
+    const result = await publish(id, user.mongoId);
     if (result.error) {
       const status = result.error.includes("Not authorized") ? 403 : 400;
       throw new ApiErrorResponse("PUBLISH_FAILED", result.error, status);

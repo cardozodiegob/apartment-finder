@@ -1,25 +1,25 @@
-import { getSession } from "@/lib/services/auth";
-import { ApiErrorResponse, errorResponse } from "@/lib/api/errors";
+import { errorResponse } from "@/lib/api/errors";
+import { getSessionUser } from "@/lib/api/session";
 
 export async function GET() {
   try {
-    const result = await getSession();
+    const user = await getSessionUser();
 
-    if (result.error) {
-      throw new ApiErrorResponse("SESSION_ERROR", result.error, 500);
-    }
-
-    if (!result.session) {
+    if (!user) {
       return Response.json({ session: null }, { status: 401 });
     }
 
     return Response.json({
       session: {
         user: {
-          id: result.session.user.id,
-          email: result.session.user.email,
+          id: user.supabaseId,
+          email: user.email,
+          fullName: user.fullName,
+          role: user.role,
+          mongoId: user.mongoId,
+          isSuspended: user.isSuspended,
+          suspensionReason: user.suspensionReason,
         },
-        expiresAt: result.session.expires_at,
       },
     });
   } catch (error) {

@@ -72,12 +72,15 @@ export async function create(
   }
 
   try {
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
     const listing = await Listing.create({
       ...parsed.data,
       posterId: userId,
       status: "draft",
       photos: [],
       photoHashes: [],
+      expiresAt,
     });
     return { listing, error: null };
   } catch (err: unknown) {
