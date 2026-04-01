@@ -32,6 +32,12 @@ interface SearchResult {
 const PROPERTY_TYPES = ["apartment", "room", "house"] as const;
 const PURPOSES = ["rent", "share", "sublet"] as const;
 const CITIES = ["Berlin", "Paris", "London", "Amsterdam", "Barcelona", "Rome", "Lisbon", "Vienna"];
+const EUROPEAN_COUNTRIES = [
+  "Germany", "France", "Spain", "Italy", "Portugal", "Netherlands", "Belgium",
+  "Austria", "Switzerland", "Sweden", "Norway", "Denmark", "Finland", "Poland",
+  "Czech Republic", "Ireland", "United Kingdom", "Greece", "Romania", "Hungary",
+  "Croatia", "Bulgaria",
+];
 
 export default function SearchPage() {
   const searchParams = useSearchParams();
@@ -49,6 +55,7 @@ export default function SearchPage() {
   const [priceMax, setPriceMax] = useState(searchParams.get("priceMax") || "");
   const [bedrooms, setBedrooms] = useState(searchParams.get("bedrooms") || "");
   const [city, setCity] = useState(searchParams.get("city") || "");
+  const [country, setCountry] = useState(searchParams.get("country") || "");
   const [isShared, setIsShared] = useState(searchParams.get("isSharedAccommodation") === "true");
   const [showMap, setShowMap] = useState(false);
   const [boundary, setBoundary] = useState<number[][][] | null>(null);
@@ -63,9 +70,10 @@ export default function SearchPage() {
     if (priceMax) params.set("priceMax", priceMax);
     if (bedrooms) params.set("bedrooms", bedrooms);
     if (city) params.set("city", city);
+    if (country) params.set("country", country);
     if (isShared) params.set("isSharedAccommodation", "true");
     return params.toString();
-  }, [query, propertyType, purpose, priceMin, priceMax, bedrooms, city, isShared]);
+  }, [query, propertyType, purpose, priceMin, priceMax, bedrooms, city, country, isShared]);
 
   const fetchResults = useCallback(async () => {
     setLoading(true);
@@ -87,7 +95,7 @@ export default function SearchPage() {
   const clearFilters = () => {
     setQuery(""); setPropertyType(""); setPurpose("");
     setPriceMin(""); setPriceMax(""); setBedrooms("");
-    setCity(""); setIsShared(false);
+    setCity(""); setCountry(""); setIsShared(false);
     setBoundary(null); setBoundaryResults(null);
     router.replace("/search");
   };
@@ -178,6 +186,15 @@ export default function SearchPage() {
       </div>
 
       <div>
+        <label htmlFor="country-select" className="text-xs text-[var(--text-secondary)] font-medium">Country</label>
+        <select id="country-select" value={country} onChange={(e) => { setCountry(e.target.value); setCity(""); }}
+          className="w-full mt-1 px-3 py-2 min-h-[44px] rounded-lg bg-[var(--background-secondary)] border border-[var(--border)] text-[var(--text-primary)] text-sm">
+          <option value="">All Countries</option>
+          {EUROPEAN_COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+      </div>
+
+      <div>
         <label htmlFor="city-select" className="text-xs text-[var(--text-secondary)] font-medium">City</label>
         <select id="city-select" value={city} onChange={(e) => setCity(e.target.value)}
           className="w-full mt-1 px-3 py-2 min-h-[44px] rounded-lg bg-[var(--background-secondary)] border border-[var(--border)] text-[var(--text-primary)] text-sm">
@@ -194,17 +211,17 @@ export default function SearchPage() {
 
       <div className="flex gap-2">
         <button onClick={() => { fetchResults(); setDrawerOpen(false); }}
-          className="flex-1 px-4 py-2 min-h-[44px] bg-navy-500 text-white rounded-lg text-sm font-medium hover:bg-navy-600 transition-colors">
+          className="flex-1 px-4 py-2 min-h-[44px] bg-navy-500 text-white rounded-lg text-sm font-medium hover:bg-navy-600 transition-colors btn-press">
           Search
         </button>
         <button onClick={() => { clearFilters(); setDrawerOpen(false); }}
-          className="px-4 py-2 min-h-[44px] border border-[var(--border)] text-[var(--text-secondary)] rounded-lg text-sm hover:bg-[var(--background-secondary)] transition-colors">
+          className="px-4 py-2 min-h-[44px] border border-[var(--border)] text-[var(--text-secondary)] rounded-lg text-sm hover:bg-[var(--background-secondary)] transition-colors btn-press">
           Clear
         </button>
       </div>
 
       <button onClick={() => setShowMap(!showMap)}
-        className="w-full px-4 py-2 min-h-[44px] border border-[var(--border)] text-[var(--text-secondary)] rounded-lg text-sm hover:bg-[var(--background-secondary)] transition-colors">
+        className="w-full px-4 py-2 min-h-[44px] border border-[var(--border)] text-[var(--text-secondary)] rounded-lg text-sm hover:bg-[var(--background-secondary)] transition-colors btn-press">
         {showMap ? "Hide Map" : "Show Map"}
       </button>
     </div>
@@ -218,7 +235,7 @@ export default function SearchPage() {
         <div className="lg:hidden">
           <button
             onClick={() => setDrawerOpen(true)}
-            className="w-full px-4 py-3 min-h-[44px] bg-navy-500 text-white rounded-lg text-sm font-medium hover:bg-navy-600 transition-colors flex items-center justify-center gap-2"
+            className="w-full px-4 py-3 min-h-[44px] bg-navy-500 text-white rounded-lg text-sm font-medium hover:bg-navy-600 transition-colors flex items-center justify-center gap-2 btn-press"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 010 2H4a1 1 0 01-1-1zm3 6a1 1 0 011-1h10a1 1 0 010 2H7a1 1 0 01-1-1zm4 6a1 1 0 011-1h2a1 1 0 010 2h-2a1 1 0 01-1-1z" />
@@ -290,7 +307,7 @@ export default function SearchPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             {displayResults?.listings.map((listing) => (
-              <a key={listing._id} href={`/listings/${listing._id}`} className="glass-card hover:scale-[1.02] transition-transform block">
+              <a key={listing._id} href={`/listings/${listing._id}`} className="glass-card card-hover block">
                 <img
                   src={listing.photos?.[0] || placeholderImg}
                   alt={`Photo of ${listing.title}`}

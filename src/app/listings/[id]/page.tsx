@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import dynamic from "next/dynamic";
+
+const ListingDetailMap = dynamic(() => import("@/components/listings/ListingDetailMap"), { ssr: false });
 
 interface ListingData {
   _id: string;
@@ -11,6 +14,7 @@ interface ListingData {
   propertyType: string;
   purpose: string;
   address: { street: string; city: string; neighborhood?: string; postalCode: string; country: string };
+  location: { type: string; coordinates: [number, number] };
   monthlyRent: number;
   currency: string;
   availableDate: string;
@@ -203,11 +207,20 @@ export default function ListingDetailPage() {
               </div>
             </div>
 
-            {/* Map placeholder */}
+            {/* Map */}
             <div className="glass-card">
               <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-2">Location</h3>
-              <div className="aspect-square rounded-lg bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center">
-                <p className="text-xs text-[var(--text-muted)]">Map pin coming soon</p>
+              <div className="aspect-square rounded-lg overflow-hidden border border-[var(--border)]">
+                {listing.location?.coordinates ? (
+                  <ListingDetailMap
+                    lng={listing.location.coordinates[0]}
+                    lat={listing.location.coordinates[1]}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-[var(--surface)]">
+                    <p className="text-xs text-[var(--text-muted)]">No location data</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

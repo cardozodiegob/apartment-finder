@@ -14,6 +14,7 @@ export interface SearchParams {
   purpose?: "rent" | "share" | "sublet";
   isSharedAccommodation?: boolean;
   city?: string;
+  country?: string;
   neighborhood?: string;
   page: number;
   limit: number;
@@ -47,6 +48,7 @@ export const searchParamsSchema = z.object({
   purpose: z.enum(["rent", "share", "sublet"]).optional(),
   isSharedAccommodation: z.coerce.boolean().optional(),
   city: z.string().optional(),
+  country: z.string().optional(),
   neighborhood: z.string().optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
@@ -74,6 +76,7 @@ export function serializeFilters(params: Partial<SearchParams>): URLSearchParams
   if (params.purpose) sp.set("purpose", params.purpose);
   if (params.isSharedAccommodation) sp.set("isSharedAccommodation", "true");
   if (params.city) sp.set("city", params.city);
+  if (params.country) sp.set("country", params.country);
   if (params.neighborhood) sp.set("neighborhood", params.neighborhood);
   if (params.page && params.page > 1) sp.set("page", String(params.page));
   if (params.limit && params.limit !== 20) sp.set("limit", String(params.limit));
@@ -107,6 +110,8 @@ export function deserializeFilters(sp: URLSearchParams): Partial<SearchParams> {
   if (isShared === "true") params.isSharedAccommodation = true;
   const city = sp.get("city");
   if (city) params.city = city;
+  const country = sp.get("country");
+  if (country) params.country = country;
   const neighborhood = sp.get("neighborhood");
   if (neighborhood) params.neighborhood = neighborhood;
   const page = sp.get("page");
@@ -155,6 +160,9 @@ function buildQuery(params: SearchParams): Record<string, unknown> {
   }
   if (params.city) {
     query["address.city"] = params.city;
+  }
+  if (params.country) {
+    query["address.country"] = params.country;
   }
   if (params.neighborhood) {
     query["address.neighborhood"] = params.neighborhood;

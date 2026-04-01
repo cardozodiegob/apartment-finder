@@ -219,6 +219,35 @@ export default function NewListingPage() {
 
   const handleMapLocationChange = useCallback((lat: number, lng: number) => {
     setForm((prev) => ({ ...prev, lat, lng }));
+
+    // Reverse geocode to auto-populate address fields
+    fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1&email=noreply@apartmentfinder.eu`
+    )
+      .then((r) => r.json())
+      .then((data: NominatimResult) => {
+        if (!data.address) return;
+        const addr = data.address;
+        const street = [addr.road, addr.house_number].filter(Boolean).join(" ");
+        const city = addr.city || addr.town || addr.village || "";
+        const neighborhood = addr.suburb || addr.neighbourhood || "";
+        const postalCode = addr.postcode || "";
+        const countryName = EUROPEAN_COUNTRIES.find(
+          (c) => COUNTRY_CODES[c] === addr.country_code
+        ) || addr.country || "";
+
+        setForm((prev) => ({
+          ...prev,
+          street: street || prev.street,
+          city: city || prev.city,
+          neighborhood: neighborhood || prev.neighborhood,
+          postalCode: postalCode || prev.postalCode,
+          country: countryName || prev.country,
+        }));
+        if (city) setCityQuery(city);
+        if (data.display_name) setAddressQuery(data.display_name);
+      })
+      .catch(() => { /* ignore reverse geocode errors */ });
   }, []);
 
   async function handleSubmit() {

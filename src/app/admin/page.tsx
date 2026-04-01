@@ -14,8 +14,8 @@ export default function AdminDashboard() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
 
   useEffect(() => {
-    // In production, adminId comes from session
-    fetch("/api/admin/dashboard?adminId=admin")
+    // Session-based auth — no adminId needed
+    fetch("/api/admin/dashboard")
       .then((r) => r.json())
       .then(setMetrics)
       .catch(() => {});
@@ -47,6 +47,8 @@ export default function AdminDashboard() {
           <Link href="/admin/users" className="px-4 py-2 bg-navy-500 text-white rounded-lg text-sm font-medium hover:bg-navy-600">Manage Users</Link>
           <Link href="/admin/listings" className="px-4 py-2 bg-navy-500 text-white rounded-lg text-sm font-medium hover:bg-navy-600">Manage Listings</Link>
           <Link href="/admin/reports" className="px-4 py-2 bg-navy-500 text-white rounded-lg text-sm font-medium hover:bg-navy-600">Report Queue</Link>
+          <Link href="/admin/scam-review" className="px-4 py-2 bg-navy-500 text-white rounded-lg text-sm font-medium hover:bg-navy-600">Scam Review</Link>
+          <Link href="/admin/content" className="px-4 py-2 bg-navy-500 text-white rounded-lg text-sm font-medium hover:bg-navy-600">Content Management</Link>
         </div>
       </div>
     </div>

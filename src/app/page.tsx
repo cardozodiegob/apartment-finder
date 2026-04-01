@@ -22,7 +22,7 @@ export default function HomePage() {
   const heroRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch("/api/search?limit=6")
+    fetch("/api/listings/featured")
       .then((r) => r.json())
       .then((data) => setFeatured(data.listings || []))
       .catch(() => {});

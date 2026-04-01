@@ -33,6 +33,14 @@ export interface IUser extends Document {
   suspensionReason?: string;
   confirmedScamReports: number;
   bio?: string;
+  profilePhoto?: string;
+  phone?: string;
+  dateOfBirth?: Date;
+  nationality?: string;
+  idType?: "national_id" | "passport" | "residence_permit";
+  idNumber?: string;
+  idVerified?: boolean;
+  profileCompleted?: boolean;
   notificationPreferences: INotificationPreferences;
   createdAt: Date;
   updatedAt: Date;
@@ -88,6 +96,14 @@ const UserSchema = new Schema<IUser>(
     suspensionReason: { type: String },
     confirmedScamReports: { type: Number, default: 0 },
     bio: { type: String, maxlength: 500 },
+    profilePhoto: { type: String },
+    phone: { type: String },
+    dateOfBirth: { type: Date },
+    nationality: { type: String },
+    idType: { type: String, enum: ["national_id", "passport", "residence_permit"] },
+    idNumber: { type: String },
+    idVerified: { type: Boolean, default: false },
+    profileCompleted: { type: Boolean, default: false },
     notificationPreferences: {
       type: NotificationPreferencesSchema,
       default: () => ({}),

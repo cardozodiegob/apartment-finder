@@ -68,6 +68,21 @@ export async function GET(
         memberSince: user.createdAt,
         profileCompleteness: user.profileCompleteness,
         isSuspended: user.isSuspended,
+        idVerified: user.idVerified,
+      },
+      user: {
+        _id: user._id.toString(),
+        fullName: user.fullName,
+        bio: user.bio || "",
+        phone: user.phone || "",
+        dateOfBirth: user.dateOfBirth ? user.dateOfBirth.toISOString() : "",
+        nationality: user.nationality || "",
+        idType: user.idType || "",
+        idNumber: user.idNumber || "",
+        profilePhoto: user.profilePhoto || "",
+        profileCompleteness: user.profileCompleteness,
+        profileCompleted: user.profileCompleted || false,
+        idVerified: user.idVerified || false,
       },
     });
   } catch (error) {

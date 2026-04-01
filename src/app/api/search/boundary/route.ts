@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
       purpose: params.purpose,
       isSharedAccommodation: params.isSharedAccommodation,
       city: params.city,
+      country: params.country,
       neighborhood: params.neighborhood,
       page: params.page,
       limit: params.limit,
