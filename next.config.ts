@@ -17,7 +17,7 @@ const nextConfig: NextConfig = {
           {
             key: "Content-Security-Policy",
             value:
-              "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://placehold.co https://*.supabase.co; font-src 'self'; connect-src 'self' https://*.supabase.co https://api.stripe.com; frame-src https://js.stripe.com;",
+              "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://placehold.co https://*.supabase.co https://*.basemaps.cartocdn.com https://unpkg.com https://*.tile.openstreetmap.org; font-src 'self'; connect-src 'self' https://*.supabase.co https://api.stripe.com https://*.basemaps.cartocdn.com https://nominatim.openstreetmap.org https://unpkg.com; frame-src https://js.stripe.com;",
           },
         ],
       },

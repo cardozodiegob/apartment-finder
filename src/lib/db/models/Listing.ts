@@ -41,6 +41,7 @@ export interface IListing extends Document {
   currentOccupants?: number;
   availableRooms?: number;
   status: "draft" | "active" | "under_review" | "archived";
+  isFeatured: boolean;
   scamRiskLevel?: "low" | "medium" | "high";
   expiresAt?: Date;
   renewedAt?: Date;
@@ -120,6 +121,7 @@ const ListingSchema = new Schema<IListing>(
       enum: ["draft", "active", "under_review", "archived"],
       default: "draft",
     },
+    isFeatured: { type: Boolean, default: false },
     scamRiskLevel: {
       type: String,
       enum: ["low", "medium", "high"],

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import LanguageSelector from "@/components/ui/LanguageSelector";
@@ -21,6 +21,8 @@ export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof document !== "undefined") return document.documentElement.classList.contains("dark");
     return false;
@@ -28,7 +30,6 @@ export default function Navbar() {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  // Check session on mount and when the page becomes visible again
   useEffect(() => {
     async function checkSession() {
       try {
@@ -46,7 +47,6 @@ export default function Navbar() {
 
     checkSession();
 
-    // Re-check session when tab becomes visible (e.g. after login redirect)
     function handleVisibilityChange() {
       if (document.visibilityState === "visible") {
         checkSession();
@@ -55,6 +55,17 @@ export default function Navbar() {
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [pathname]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const toggleTheme = () => {
     const next = !darkMode;
@@ -68,6 +79,7 @@ export default function Navbar() {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
       setUser(null);
+      setDropdownOpen(false);
       router.push("/");
       router.refresh();
     } catch {
@@ -76,6 +88,8 @@ export default function Navbar() {
       setIsLoggingOut(false);
     }
   }
+
+  const userInitial = user ? (user.fullName || user.email).charAt(0).toUpperCase() : "";
 
   return (
     <nav className="glass-nav sticky top-0 z-40">
@@ -91,69 +105,96 @@ export default function Navbar() {
 
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-4">
-          <Link href="/search" className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]">Search</Link>
+          <Link href="/search" className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors btn-press">Search</Link>
           {user && (
-            <Link href="/dashboard/listings" className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]">My Listings</Link>
+            <Link href="/dashboard/listings" className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors btn-press">My Listings</Link>
           )}
           <LanguageSelector />
           <CurrencySelector />
-          <button onClick={toggleTheme} className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-[var(--background-secondary)]" aria-label="Toggle theme">
+          <button onClick={toggleTheme} className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-[var(--background-secondary)] transition-colors btn-press" aria-label="Toggle theme">
             {darkMode ? <SunIcon size={20} /> : <MoonIcon size={20} />}
           </button>
           {user && (
-            <button className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-[var(--background-secondary)] relative" aria-label="Notifications">
+            <button className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-[var(--background-secondary)] transition-colors btn-press relative" aria-label="Notifications">
               <BellIcon size={20} />
             </button>
           )}
           {user ? (
-            <div className="flex items-center gap-3">
-              <div className="relative group">
-                <button className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                  <div className="w-8 h-8 rounded-full bg-navy-500 text-white flex items-center justify-center text-sm font-medium shrink-0">
-                    {(user.fullName || user.email).charAt(0).toUpperCase()}
+            <div ref={dropdownRef} className="relative">
+              <button
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="flex items-center gap-2 transition-opacity btn-press"
+                aria-expanded={dropdownOpen}
+                aria-haspopup="true"
+              >
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-navy-400 to-navy-600 text-white flex items-center justify-center text-sm font-semibold shrink-0 shadow-sm">
+                  {userInitial}
+                </div>
+                <span className="text-sm text-[var(--text-primary)] truncate max-w-[120px] hidden lg:block">
+                  {user.fullName || user.email}
+                </span>
+                <svg className={`w-4 h-4 text-[var(--text-muted)] transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {dropdownOpen && (
+                <div
+                  className="absolute right-0 top-full mt-2 w-56 py-2 rounded-2xl border border-[var(--glass-border)] bg-white/80 dark:bg-[#0c1754]/80 backdrop-blur-xl shadow-xl z-50"
+                  style={{ animation: "dropdown-enter 0.2s ease" }}
+                >
+                  {/* User info header */}
+                  <div className="px-4 py-2 mb-1">
+                    <p className="text-sm font-semibold text-[var(--text-primary)] truncate">{user.fullName || user.email}</p>
+                    <p className="text-xs text-[var(--text-muted)] truncate">{user.email}</p>
                   </div>
-                  <span className="text-sm text-[var(--text-primary)] truncate max-w-[120px] hidden lg:block">
-                    {user.fullName || user.email}
-                  </span>
-                </button>
-                <div className="absolute right-0 top-full mt-1 w-48 py-1 rounded-lg border border-[var(--border)] bg-[var(--surface)] shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                  <div className="h-px bg-[var(--border)] mx-3 mb-1" />
+
                   {user.mongoId && (
-                    <Link href={`/users/${user.mongoId}`} className="block px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--background-secondary)]">
+                    <Link href={`/users/${user.mongoId}`} onClick={() => setDropdownOpen(false)} className="block px-4 py-2.5 text-sm text-[var(--text-primary)] hover:bg-[var(--background-secondary)] transition-colors">
                       My Profile
                     </Link>
                   )}
-                  <Link href="/dashboard/listings" className="block px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--background-secondary)]">
+                  <Link href="/dashboard/listings" onClick={() => setDropdownOpen(false)} className="block px-4 py-2.5 text-sm text-[var(--text-primary)] hover:bg-[var(--background-secondary)] transition-colors">
                     My Listings
                   </Link>
-                  <Link href="/dashboard/favorites" className="block px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--background-secondary)]">
+                  <Link href="/dashboard/favorites" onClick={() => setDropdownOpen(false)} className="block px-4 py-2.5 text-sm text-[var(--text-primary)] hover:bg-[var(--background-secondary)] transition-colors">
                     Favorites
                   </Link>
-                  <Link href="/dashboard/messages" className="block px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--background-secondary)]">
+                  <Link href="/dashboard/messages" onClick={() => setDropdownOpen(false)} className="block px-4 py-2.5 text-sm text-[var(--text-primary)] hover:bg-[var(--background-secondary)] transition-colors">
                     Messages
                   </Link>
+                  <Link href="/dashboard/settings" onClick={() => setDropdownOpen(false)} className="block px-4 py-2.5 text-sm text-[var(--text-primary)] hover:bg-[var(--background-secondary)] transition-colors">
+                    Settings
+                  </Link>
+
                   {user.role === "admin" && (
-                    <Link href="/admin" className="block px-4 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--background-secondary)]">
-                      Admin Panel
-                    </Link>
+                    <>
+                      <div className="h-px bg-[var(--border)] mx-3 my-1" />
+                      <Link href="/admin" onClick={() => setDropdownOpen(false)} className="block px-4 py-2.5 text-sm text-[var(--text-primary)] hover:bg-[var(--background-secondary)] transition-colors">
+                        Admin Panel
+                      </Link>
+                    </>
                   )}
-                  <hr className="my-1 border-[var(--border)]" />
+
+                  <div className="h-px bg-[var(--border)] mx-3 my-1" />
                   <button
                     onClick={handleLogout}
                     disabled={isLoggingOut}
-                    className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-[var(--background-secondary)] disabled:opacity-50"
+                    className="block w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-[var(--background-secondary)] transition-colors disabled:opacity-50"
                   >
                     {isLoggingOut ? "Signing out…" : "Sign Out"}
                   </button>
                 </div>
-              </div>
+              )}
             </div>
           ) : (
-            <Link href="/login" className="px-4 py-2 bg-navy-500 text-white rounded-lg text-sm font-medium hover:bg-navy-600">Sign In</Link>
+            <Link href="/login" className="px-4 py-2 bg-navy-500 text-white rounded-lg text-sm font-medium hover:bg-navy-600 transition-colors btn-press">Sign In</Link>
           )}
         </div>
 
         {/* Mobile hamburger */}
-        <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden p-2 min-h-[44px] min-w-[44px] flex items-center justify-center" aria-label="Toggle menu">
+        <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden p-2 min-h-[44px] min-w-[44px] flex items-center justify-center btn-press" aria-label="Toggle menu">
           <svg className="w-6 h-6 text-[var(--text-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             {mobileOpen ? (
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -165,32 +206,43 @@ export default function Navbar() {
       </div>
 
       {/* Mobile menu */}
-      {mobileOpen && (
-        <div className="md:hidden glass-lg p-4 space-y-3">
-          <Link href="/search" className="block text-sm text-[var(--text-secondary)]" onClick={() => setMobileOpen(false)}>Search</Link>
+      <div
+        className={`md:hidden overflow-hidden transition-all duration-200 ease-in-out ${mobileOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"}`}
+      >
+        <div className="glass-lg p-4 space-y-3">
+          <Link href="/search" className="block text-sm text-[var(--text-secondary)] py-2 btn-press" onClick={() => setMobileOpen(false)}>Search</Link>
           {user && (
-            <Link href="/dashboard/listings" className="block text-sm text-[var(--text-secondary)]" onClick={() => setMobileOpen(false)}>My Listings</Link>
+            <>
+              <Link href="/dashboard/listings" className="block text-sm text-[var(--text-secondary)] py-2 btn-press" onClick={() => setMobileOpen(false)}>My Listings</Link>
+              <Link href="/dashboard/favorites" className="block text-sm text-[var(--text-secondary)] py-2 btn-press" onClick={() => setMobileOpen(false)}>Favorites</Link>
+              <Link href="/dashboard/messages" className="block text-sm text-[var(--text-secondary)] py-2 btn-press" onClick={() => setMobileOpen(false)}>Messages</Link>
+              <Link href="/dashboard/settings" className="block text-sm text-[var(--text-secondary)] py-2 btn-press" onClick={() => setMobileOpen(false)}>Settings</Link>
+              {user.role === "admin" && (
+                <Link href="/admin" className="block text-sm text-[var(--text-secondary)] py-2 btn-press" onClick={() => setMobileOpen(false)}>Admin Panel</Link>
+              )}
+              <div className="h-px bg-[var(--border)] my-1" />
+            </>
           )}
           <div className="flex gap-2">
             <LanguageSelector />
             <CurrencySelector />
           </div>
           <div className="flex gap-2">
-            <button onClick={toggleTheme} className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg border border-[var(--border)]">{darkMode ? <SunIcon size={20} /> : <MoonIcon size={20} />}</button>
+            <button onClick={toggleTheme} className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg border border-[var(--border)] btn-press">{darkMode ? <SunIcon size={20} /> : <MoonIcon size={20} />}</button>
             {user ? (
               <button
                 onClick={() => { setMobileOpen(false); handleLogout(); }}
                 disabled={isLoggingOut}
-                className="px-4 py-2 border border-[var(--border)] text-[var(--text-secondary)] rounded-lg text-sm font-medium"
+                className="px-4 py-2 border border-[var(--border)] text-[var(--text-secondary)] rounded-lg text-sm font-medium btn-press"
               >
                 {isLoggingOut ? "Signing out…" : "Sign Out"}
               </button>
             ) : (
-              <Link href="/login" className="px-4 py-2 bg-navy-500 text-white rounded-lg text-sm font-medium" onClick={() => setMobileOpen(false)}>Sign In</Link>
+              <Link href="/login" className="px-4 py-2 bg-navy-500 text-white rounded-lg text-sm font-medium btn-press" onClick={() => setMobileOpen(false)}>Sign In</Link>
             )}
           </div>
         </div>
-      )}
+      </div>
     </nav>
   );
 }

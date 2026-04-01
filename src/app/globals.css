@@ -1,3 +1,4 @@
+@import "leaflet/dist/leaflet.css";
 @import "tailwindcss";
 
 /* ============================================
@@ -152,4 +153,53 @@ body {
   -webkit-backdrop-filter: blur(24px);
   border-bottom: 1px solid var(--glass-border);
   box-shadow: var(--glass-shadow);
+}
+
+
+/* ============================================
+   Toast Animations
+   ============================================ */
+
+@keyframes toast-slide-in {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes toast-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* ============================================
+   Dropdown Animation
+   ============================================ */
+
+@keyframes dropdown-enter {
+  from { opacity: 0; transform: translateY(-8px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ============================================
+   Button Press Feedback
+   ============================================ */
+
+.btn-press {
+  transition: transform 0.1s ease, opacity 0.1s ease;
+}
+.btn-press:active {
+  transform: scale(0.97);
+  opacity: 0.8;
+}
+
+/* ============================================
+   Smooth Card Hover
+   ============================================ */
+
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  z-index: 1;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
 }
