@@ -7,6 +7,12 @@ import dynamic from "next/dynamic";
 
 const ListingDetailMap = dynamic(() => import("@/components/listings/ListingDetailMap"), { ssr: false });
 
+interface PriceHistoryEntry {
+  price: number;
+  currency: string;
+  changedAt: string;
+}
+
 interface ListingData {
   _id: string;
   title: string;
@@ -26,6 +32,7 @@ interface ListingData {
   status: string;
   posterId: string;
   createdAt: string;
+  priceHistory?: PriceHistoryEntry[];
 }
 
 const PLACEHOLDER_IMG = "https://placehold.co/400x300/e2e8f0/64748b?text=No+Photo";
@@ -191,6 +198,30 @@ export default function ListingDetailPage() {
                 {listing.monthlyRent.toLocaleString()} {listing.currency}
               </p>
               <p className="text-sm text-[var(--text-muted)]">per month</p>
+              {(() => {
+                const history = listing.priceHistory;
+                if (history && history.length > 0) {
+                  const last = history[history.length - 1];
+                  if (last.price !== listing.monthlyRent) {
+                    const reduced = listing.monthlyRent < last.price;
+                    return (
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                          reduced
+                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                            : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                        }`}>
+                          {reduced ? "↓ Price reduced" : "↑ Price increased"}
+                        </span>
+                        <span className="text-sm text-[var(--text-muted)] line-through">
+                          {last.price.toLocaleString()} {last.currency}
+                        </span>
+                      </div>
+                    );
+                  }
+                }
+                return null;
+              })()}
               <div className="mt-4 space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-[var(--text-muted)]">Available</span>

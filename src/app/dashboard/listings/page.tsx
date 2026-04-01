@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useToast } from "@/lib/hooks/useToast";
+import { ToastContainer } from "@/components/ui/Toast";
 
 interface ListingItem {
   _id: string;
@@ -29,11 +31,14 @@ export default function DashboardListingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<string>("all");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editPrice, setEditPrice] = useState("");
+  const [savingPrice, setSavingPrice] = useState(false);
+  const { toasts, toast, dismissToast } = useToast();
 
   useEffect(() => {
     async function load() {
       try {
-        // Fetch current user session first
         const sessionRes = await fetch("/api/auth/session");
         const sessionData = await sessionRes.json();
         if (!sessionRes.ok || !sessionData.session) {
@@ -53,13 +58,45 @@ export default function DashboardListingsPage() {
     load();
   }, [filter]);
 
+  async function handlePriceSave(listing: ListingItem) {
+    const newPrice = parseFloat(editPrice);
+    if (isNaN(newPrice) || newPrice < 0) {
+      toast("Enter a valid price", "error");
+      return;
+    }
+    setSavingPrice(true);
+    try {
+      const res = await fetch(`/api/listings/${listing._id}/price`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ monthlyRent: newPrice }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setListings((prev) =>
+          prev.map((l) => l._id === listing._id ? { ...l, monthlyRent: data.listing.monthlyRent } : l)
+        );
+        toast("Price updated", "success");
+        setEditingId(null);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast(data.message || "Failed to update price", "error");
+      }
+    } catch {
+      toast("Failed to update price", "error");
+    } finally {
+      setSavingPrice(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[var(--background)] py-8 px-4">
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       <div className="max-w-5xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-[var(--text-primary)]">My Listings</h1>
           <Link href="/listings/new"
-            className="px-4 py-2 rounded-lg bg-navy-600 hover:bg-navy-700 text-white font-medium transition-colors">
+            className="px-4 py-2 rounded-lg bg-navy-600 hover:bg-navy-700 text-white font-medium transition-colors btn-press">
             + New Listing
           </Link>
         </div>
@@ -68,7 +105,7 @@ export default function DashboardListingsPage() {
         <div className="flex gap-2 mb-6">
           {["all", "draft", "active", "under_review", "archived"].map((s) => (
             <button key={s} onClick={() => setFilter(s)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors btn-press ${
                 filter === s
                   ? "bg-navy-600 text-white"
                   : "bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--background-secondary)]"
@@ -92,8 +129,8 @@ export default function DashboardListingsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {listings.map((listing) => (
-              <Link key={listing._id} href={`/listings/${listing._id}`} className="block">
-                <div className="glass-card hover:shadow-lg transition-shadow group">
+              <div key={listing._id} className="glass-card hover:shadow-lg transition-shadow group">
+                <Link href={`/listings/${listing._id}`} className="block">
                   <div className="aspect-video rounded-lg overflow-hidden mb-3 bg-[var(--surface)]">
                     <img
                       src={listing.photos[0] || PLACEHOLDER_IMG}
@@ -108,15 +145,60 @@ export default function DashboardListingsPage() {
                     </span>
                   </div>
                   <p className="text-sm text-[var(--text-muted)]">{listing.address.city}, {listing.address.country}</p>
-                  <p className="text-lg font-bold text-[var(--text-primary)] mt-1">
-                    {listing.monthlyRent.toLocaleString()} {listing.currency}
-                    <span className="text-sm font-normal text-[var(--text-muted)]">/mo</span>
-                  </p>
-                  <p className="text-xs text-[var(--text-muted)] mt-2">
-                    {listing.propertyType} · {new Date(listing.createdAt).toLocaleDateString()}
-                  </p>
+                </Link>
+
+                {/* Price row with edit */}
+                <div className="mt-1">
+                  {editingId === listing._id ? (
+                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="number"
+                        value={editPrice}
+                        onChange={(e) => setEditPrice(e.target.value)}
+                        className="w-24 px-2 py-1 rounded-lg bg-[var(--background-secondary)] border border-[var(--border)] text-[var(--text-primary)] text-sm"
+                        min="0"
+                        autoFocus
+                      />
+                      <span className="text-xs text-[var(--text-muted)]">{listing.currency}</span>
+                      <button
+                        onClick={() => handlePriceSave(listing)}
+                        disabled={savingPrice}
+                        className="px-2 py-1 text-xs bg-navy-500 text-white rounded-lg hover:bg-navy-600 disabled:opacity-50 btn-press"
+                      >
+                        {savingPrice ? "…" : "Save"}
+                      </button>
+                      <button
+                        onClick={() => setEditingId(null)}
+                        className="px-2 py-1 text-xs border border-[var(--border)] text-[var(--text-muted)] rounded-lg hover:bg-[var(--background-secondary)] btn-press"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <p className="text-lg font-bold text-[var(--text-primary)]">
+                        {listing.monthlyRent.toLocaleString()} {listing.currency}
+                        <span className="text-sm font-normal text-[var(--text-muted)]">/mo</span>
+                      </p>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setEditingId(listing._id);
+                          setEditPrice(String(listing.monthlyRent));
+                        }}
+                        className="px-1.5 py-0.5 text-xs rounded border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--background-secondary)] transition-colors btn-press"
+                        aria-label={`Edit price for ${listing.title}`}
+                      >
+                        ✎
+                      </button>
+                    </div>
+                  )}
                 </div>
-              </Link>
+
+                <p className="text-xs text-[var(--text-muted)] mt-2">
+                  {listing.propertyType} · {new Date(listing.createdAt).toLocaleDateString()}
+                </p>
+              </div>
             ))}
           </div>
         )}

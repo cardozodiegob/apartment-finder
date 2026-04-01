@@ -43,6 +43,7 @@ export interface IListing extends Document {
   status: "draft" | "active" | "under_review" | "archived";
   isFeatured: boolean;
   scamRiskLevel?: "low" | "medium" | "high";
+  priceHistory: { price: number; currency: string; changedAt: Date }[];
   expiresAt?: Date;
   renewedAt?: Date;
   createdAt: Date;
@@ -125,6 +126,16 @@ const ListingSchema = new Schema<IListing>(
     scamRiskLevel: {
       type: String,
       enum: ["low", "medium", "high"],
+    },
+    priceHistory: {
+      type: [
+        {
+          price: { type: Number, required: true },
+          currency: { type: String, required: true },
+          changedAt: { type: Date, required: true },
+        },
+      ],
+      default: [],
     },
     expiresAt: { type: Date },
     renewedAt: { type: Date },

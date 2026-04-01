@@ -42,10 +42,20 @@ export default function UserProfilePage() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isOwner, setIsOwner] = useState(false);
 
   useEffect(() => {
     async function fetchProfile() {
       try {
+        // Check if viewer is the profile owner
+        const sessionRes = await fetch("/api/auth/session");
+        if (sessionRes.ok) {
+          const sessionData = await sessionRes.json();
+          if (sessionData.session?.user?.mongoId === userId) {
+            setIsOwner(true);
+          }
+        }
+
         const res = await fetch(`/api/users/${userId}/profile`);
         if (!res.ok) {
           const data = await res.json();
@@ -118,6 +128,14 @@ export default function UserProfilePage() {
           <p className="text-sm text-gray-500">
             Member since {new Date(profile.memberSince).toLocaleDateString()}
           </p>
+          {isOwner && (
+            <Link
+              href="/dashboard/settings"
+              className="inline-block mt-3 px-4 py-2 rounded-xl text-sm font-medium bg-white/60 dark:bg-[#0c1754]/60 backdrop-blur-md border border-[var(--glass-border)] text-[var(--text-primary)] hover:bg-white/80 dark:hover:bg-[#0c1754]/80 transition-colors btn-press"
+            >
+              Edit Profile
+            </Link>
+          )}
         </div>
       </div>
 
