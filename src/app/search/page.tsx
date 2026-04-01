@@ -20,6 +20,7 @@ interface Listing {
   isSharedAccommodation: boolean;
   address: { street: string; city: string; neighborhood?: string; postalCode: string; country: string };
   location: { type: string; coordinates: [number, number] };
+  priceHistory?: { price: number; currency: string; changedAt: string }[];
 }
 
 interface SearchResult {
@@ -322,6 +323,27 @@ export default function SearchPage() {
                     {listing.propertyType}
                   </span>
                 </div>
+                {listing.priceHistory && listing.priceHistory.length > 0 && (() => {
+                  const last = listing.priceHistory![listing.priceHistory!.length - 1];
+                  if (last.price !== listing.monthlyRent) {
+                    const reduced = listing.monthlyRent < last.price;
+                    return (
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                          reduced
+                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
+                            : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
+                        }`}>
+                          {reduced ? "↓ Price reduced" : "↑ Price increased"}
+                        </span>
+                        <span className="text-xs text-[var(--text-muted)] line-through">
+                          {last.currency} {last.price.toLocaleString()}
+                        </span>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
                 {listing.isSharedAccommodation && (
                   <span className="inline-block mt-2 text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200">
                     Shared
