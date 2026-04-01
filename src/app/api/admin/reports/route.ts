@@ -1,13 +1,10 @@
-import { NextRequest } from "next/server";
 import Report from "@/lib/db/models/Report";
-import { requireAdmin } from "@/lib/api/admin-middleware";
+import { requireAdmin } from "@/lib/api/session";
 import { errorResponse } from "@/lib/api/errors";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const url = new URL(request.url);
-    const adminId = url.searchParams.get("adminId") || "";
-    await requireAdmin(adminId);
+    const admin = await requireAdmin();
     // Sorted by oldest unresolved first
     const reports = await Report.find({ status: { $ne: "resolved" } }).sort({ createdAt: 1 });
     return Response.json({ reports });

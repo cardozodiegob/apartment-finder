@@ -1,10 +1,9 @@
-import { supabaseAdmin } from "@/lib/supabase/server";
-import { supabase } from "@/lib/supabase/client";
+import { supabaseAdmin, supabaseServerAuth } from "@/lib/supabase/server";
 import User from "@/lib/db/models/User";
+import dbConnect from "@/lib/db/connection";
 import { registerSchema, loginSchema } from "@/lib/validations/auth";
 import type { RegisterInput } from "@/lib/validations/auth";
-import type { OAuthProvider } from "@/lib/supabase/types";
-import type { Session, User as SupabaseUser, AuthError } from "@supabase/supabase-js";
+import type { Session, User as SupabaseUser } from "@supabase/supabase-js";
 
 // --- Account lockout tracking (in-memory) ---
 
@@ -64,7 +63,9 @@ export async function register(data: RegisterInput): Promise<AuthServiceResult> 
 
   const { email, password, fullName, preferredLanguage } = parsed.data;
 
-  // Create user in Supabase Auth
+  await dbConnect();
+
+  // Create user in Supabase Auth (email_confirm: false — user must verify)
   const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
     email,
     password,
@@ -101,7 +102,7 @@ export async function register(data: RegisterInput): Promise<AuthServiceResult> 
   return { user: supabaseUser, error: null };
 }
 
-export async function login(email: string, password: string): Promise<AuthServiceResult> {
+export async function login(email: string, password: string): Promise<AuthServiceResult & { session?: Session | null }> {
   const parsed = loginSchema.safeParse({ email, password });
   if (!parsed.success) {
     return { user: null, error: parsed.error.errors[0].message };
@@ -112,7 +113,10 @@ export async function login(email: string, password: string): Promise<AuthServic
     return { user: null, error: "Account temporarily locked. Try again later." };
   }
 
-  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+  // Use the anon-key server client for signInWithPassword.
+  // The service role (admin) client does NOT work for signInWithPassword because
+  // it has persistSession: false and bypasses normal auth — it won't return tokens.
+  const { data: authData, error: authError } = await supabaseServerAuth.auth.signInWithPassword({
     email,
     password,
   });
@@ -122,17 +126,25 @@ export async function login(email: string, password: string): Promise<AuthServic
     if (locked) {
       return { user: null, error: "Account temporarily locked. Check your email." };
     }
+    // Provide a more helpful message for unconfirmed emails
+    if (authError.message?.toLowerCase().includes("email not confirmed")) {
+      return { user: null, error: "Please verify your email before logging in. Check your inbox for the verification link." };
+    }
     return { user: null, error: "Invalid email or password" };
   }
 
   // Successful login — clear failed attempts
   clearFailedAttempts(email);
-  return { user: authData.user, error: null };
+  return { user: authData.user, session: authData.session, error: null };
 }
 
 export async function loginWithOAuth(
-  provider: OAuthProvider
+  provider: "google" | "github"
 ): Promise<{ url: string | null; error: string | null }> {
+  // OAuth sign-in must happen client-side via the browser Supabase client.
+  // This function is only called from the client-side login page via dynamic import,
+  // so we import the browser client here.
+  const { supabase } = await import("@/lib/supabase/client");
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
     options: { redirectTo: `${typeof window !== "undefined" ? window.location.origin : ""}/auth/callback` },
@@ -146,7 +158,8 @@ export async function loginWithOAuth(
 }
 
 export async function verifyEmail(token: string): Promise<{ error: string | null }> {
-  const { error } = await supabase.auth.verifyOtp({
+  // Try OTP verification via the anon server client
+  const { error } = await supabaseServerAuth.auth.verifyOtp({
     token_hash: token,
     type: "email",
   });
@@ -159,12 +172,15 @@ export async function verifyEmail(token: string): Promise<{ error: string | null
 }
 
 export async function requestPasswordReset(email: string): Promise<{ error: string | null }> {
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${typeof window !== "undefined" ? window.location.origin : ""}/reset-password`,
+  // Use admin client to send password reset — works server-side without browser context
+  const { error } = await supabaseAdmin.auth.admin.generateLink({
+    type: "recovery",
+    email,
   });
 
   if (error) {
-    return { error: error.message };
+    // Don't expose whether the email exists
+    return { error: null };
   }
 
   return { error: null };
@@ -174,8 +190,8 @@ export async function resetPassword(
   token: string,
   newPassword: string
 ): Promise<{ error: string | null }> {
-  // First verify the recovery token to establish a session
-  const { error: verifyError } = await supabase.auth.verifyOtp({
+  // Verify the recovery token server-side
+  const { error: verifyError } = await supabaseServerAuth.auth.verifyOtp({
     token_hash: token,
     type: "recovery",
   });
@@ -184,27 +200,58 @@ export async function resetPassword(
     return { error: verifyError.message };
   }
 
-  const { error } = await supabase.auth.updateUser({ password: newPassword });
-
-  if (error) {
-    return { error: error.message };
+  // Use admin client to update the password
+  // We need to find the user from the token verification
+  const { data: sessionData } = await supabaseServerAuth.auth.getSession();
+  if (sessionData?.session?.user) {
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(
+      sessionData.session.user.id,
+      { password: newPassword }
+    );
+    if (error) {
+      return { error: error.message };
+    }
+    return { error: null };
   }
 
-  return { error: null };
+  return { error: "Invalid or expired reset token" };
 }
 
 export async function logout(): Promise<{ error: string | null }> {
-  const { error } = await supabase.auth.signOut();
-  if (error) {
-    return { error: error.message };
+  try {
+    const { cookies } = await import("next/headers");
+    const cookieStore = await cookies();
+    cookieStore.delete("sb-access-token");
+    cookieStore.delete("sb-refresh-token");
+  } catch {
+    // May fail in client context, that's ok
   }
   return { error: null };
 }
 
-export async function getSession(): Promise<{ session: Session | null; error: string | null }> {
-  const { data, error } = await supabase.auth.getSession();
-  if (error) {
-    return { session: null, error: error.message };
+export async function getSession(): Promise<{ session: { user: SupabaseUser; access_token: string } | null; error: string | null }> {
+  try {
+    const { cookies } = await import("next/headers");
+    const cookieStore = await cookies();
+    const accessToken = cookieStore.get("sb-access-token")?.value;
+
+    if (!accessToken) {
+      return { session: null, error: null };
+    }
+
+    const { data, error } = await supabaseAdmin.auth.getUser(accessToken);
+    if (error || !data.user) {
+      return { session: null, error: error?.message || null };
+    }
+
+    return {
+      session: {
+        user: data.user,
+        access_token: accessToken,
+      },
+      error: null,
+    };
+  } catch {
+    return { session: null, error: null };
   }
-  return { session: data.session, error: null };
 }

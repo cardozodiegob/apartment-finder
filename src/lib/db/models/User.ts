@@ -32,6 +32,7 @@ export interface IUser extends Document {
   isSuspended: boolean;
   suspensionReason?: string;
   confirmedScamReports: number;
+  bio?: string;
   notificationPreferences: INotificationPreferences;
   createdAt: Date;
   updatedAt: Date;
@@ -86,6 +87,7 @@ const UserSchema = new Schema<IUser>(
     isSuspended: { type: Boolean, default: false },
     suspensionReason: { type: String },
     confirmedScamReports: { type: Number, default: 0 },
+    bio: { type: String, maxlength: 500 },
     notificationPreferences: {
       type: NotificationPreferencesSchema,
       default: () => ({}),

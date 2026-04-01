@@ -32,20 +32,82 @@ if (!global.mongooseCache) {
   global.mongooseCache = cached;
 }
 
+/** Module-level flag: admin seed runs at most once per lifecycle */
+let adminSeeded = false;
+
+const MAX_RETRIES = 3;
+const BASE_DELAY_MS = 1000;
+
+/**
+ * Attempt MongoDB connection with retry logic.
+ * Retries up to 3 times with exponential backoff (1s, 2s, 4s).
+ */
+async function connectWithRetry(): Promise<typeof mongoose> {
+  const opts: mongoose.ConnectOptions = {
+    bufferCommands: false,
+    maxPoolSize: 10,
+    connectTimeoutMS: 5000,
+  };
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await mongoose.connect(MONGODB_URI!, opts);
+    } catch (err) {
+      if (attempt === MAX_RETRIES) {
+        console.error(
+          `MongoDB connection failed after ${MAX_RETRIES} attempts`,
+          err
+        );
+        throw err;
+      }
+      const delay = BASE_DELAY_MS * Math.pow(2, attempt - 1);
+      console.warn(
+        `MongoDB connection attempt ${attempt}/${MAX_RETRIES} failed, retrying in ${delay}ms...`
+      );
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+
+  // Unreachable, but satisfies TypeScript
+  throw new Error("MongoDB connection failed");
+}
+
+/**
+ * Run admin seed exactly once. On failure, log and skip — do not retry.
+ */
+async function runAdminSeedOnce(): Promise<void> {
+  if (adminSeeded) return;
+  // Set flag before calling to prevent re-entry from concurrent requests
+  adminSeeded = true;
+  try {
+    const { seedInitialAdmin } = await import("@/lib/api/admin-middleware");
+    await seedInitialAdmin();
+  } catch (err) {
+    console.error("Admin seed error (will not retry):", err);
+    // Flag stays true — no retry on subsequent requests
+  }
+}
+
 async function dbConnect(): Promise<typeof mongoose> {
   if (cached.conn) {
+    runAdminSeedOnce();
     return cached.conn;
   }
 
   if (!cached.promise) {
-    const opts: mongoose.ConnectOptions = {
-      bufferCommands: false,
-    };
-
-    cached.promise = mongoose.connect(MONGODB_URI!, opts).then((m) => m);
+    cached.promise = connectWithRetry();
   }
 
-  cached.conn = await cached.promise;
+  try {
+    cached.conn = await cached.promise;
+  } catch (err) {
+    // Reset promise so next call can retry fresh
+    cached.promise = null;
+    throw err;
+  }
+
+  runAdminSeedOnce();
+
   return cached.conn;
 }
 

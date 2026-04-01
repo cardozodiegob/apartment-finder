@@ -1,14 +1,14 @@
 import { NextRequest } from "next/server";
 import { getForUser } from "@/lib/services/notifications";
 import { errorResponse } from "@/lib/api/errors";
+import { requireSessionUser } from "@/lib/api/session";
 
 export async function GET(request: NextRequest) {
   try {
+    const user = await requireSessionUser();
     const url = new URL(request.url);
-    const userId = url.searchParams.get("userId");
-    if (!userId) return Response.json({ error: "userId required" }, { status: 400 });
     const unreadOnly = url.searchParams.get("unreadOnly") === "true";
-    const { notifications, error } = await getForUser(userId, unreadOnly);
+    const { notifications, error } = await getForUser(user.mongoId, unreadOnly);
     if (error) return Response.json({ error }, { status: 500 });
     return Response.json({ notifications });
   } catch (error) {

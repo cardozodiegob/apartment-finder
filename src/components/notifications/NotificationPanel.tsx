@@ -1,6 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { BellIcon, ShieldIcon, StarIcon } from "@/components/icons";
+
+function NotificationTypeIcon({ type }: { type: string }) {
+  switch (type) {
+    case "scam_alert":
+    case "report":
+      return <ShieldIcon size={16} className="text-red-500 shrink-0" />;
+    case "review":
+    case "trust":
+      return <StarIcon size={16} className="text-yellow-500 shrink-0" />;
+    default:
+      return <BellIcon size={16} className="text-navy-500 shrink-0" />;
+  }
+}
 
 interface NotificationItem {
   _id: string;
@@ -56,10 +70,13 @@ export default function NotificationPanel({ userId, isOpen, onClose }: { userId:
           {notifications.map((n) => (
             <div key={n._id} className={`p-3 rounded-lg border border-[var(--border)] ${n.isRead ? "opacity-60" : "bg-[var(--background-secondary)]"}`}>
               <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-[var(--text-primary)]">{n.title}</p>
-                  <p className="text-xs text-[var(--text-muted)] mt-1">{n.body}</p>
-                  <p className="text-xs text-[var(--text-muted)] mt-1">{new Date(n.createdAt).toLocaleString()}</p>
+                <div className="flex gap-2 flex-1">
+                  <NotificationTypeIcon type={n.type} />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-[var(--text-primary)]">{n.title}</p>
+                    <p className="text-xs text-[var(--text-muted)] mt-1">{n.body}</p>
+                    <p className="text-xs text-[var(--text-muted)] mt-1">{new Date(n.createdAt).toLocaleString()}</p>
+                  </div>
                 </div>
                 <div className="flex gap-1 ml-2">
                   {!n.isRead && (

@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
       neighborhood: params.neighborhood,
       page: params.page,
       limit: params.limit,
+      cursor: params.cursor,
     };
 
     const result = await search(searchParams);

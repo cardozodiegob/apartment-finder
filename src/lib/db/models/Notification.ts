@@ -43,8 +43,8 @@ const NotificationSchema = new Schema<INotification>(
   { timestamps: { createdAt: true, updatedAt: false } }
 );
 
-// Compound index for fetching user notifications filtered by read status
-NotificationSchema.index({ userId: 1, isRead: 1, createdAt: -1 });
+// Compound index for fetching user notifications filtered by read/dismissed status
+NotificationSchema.index({ userId: 1, isRead: 1, isDismissed: 1, createdAt: -1 });
 
 const Notification: Model<INotification> =
   mongoose.models.Notification ||

@@ -1,10 +1,58 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { createListingSchema } from "@/lib/validations/listing";
 
+const LocationPickerMap = dynamic(() => import("@/components/listings/LocationPickerMap"), { ssr: false });
+
 type Step = "details" | "address" | "photos" | "tags";
+
+const EUROPEAN_COUNTRIES = [
+  "Germany", "France", "Spain", "Italy", "Portugal", "Netherlands", "Belgium",
+  "Austria", "Switzerland", "Sweden", "Norway", "Denmark", "Finland", "Poland",
+  "Czech Republic", "Ireland", "United Kingdom", "Greece", "Romania", "Hungary",
+  "Croatia", "Bulgaria",
+] as const;
+
+// Map country names to ISO country codes for Nominatim filtering
+const COUNTRY_CODES: Record<string, string> = {
+  Germany: "de", France: "fr", Spain: "es", Italy: "it", Portugal: "pt",
+  Netherlands: "nl", Belgium: "be", Austria: "at", Switzerland: "ch",
+  Sweden: "se", Norway: "no", Denmark: "dk", Finland: "fi", Poland: "pl",
+  "Czech Republic": "cz", Ireland: "ie", "United Kingdom": "gb",
+  Greece: "gr", Romania: "ro", Hungary: "hu", Croatia: "hr", Bulgaria: "bg",
+};
+
+interface NominatimResult {
+  place_id: number;
+  display_name: string;
+  lat: string;
+  lon: string;
+  address?: {
+    road?: string;
+    house_number?: string;
+    city?: string;
+    town?: string;
+    village?: string;
+    suburb?: string;
+    neighbourhood?: string;
+    postcode?: string;
+    country?: string;
+    country_code?: string;
+    state?: string;
+  };
+}
+
+function useDebounce<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debounced;
+}
 
 const STEPS: Step[] = ["details", "address", "photos", "tags"];
 
@@ -18,6 +66,23 @@ export default function NewListingPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [serverError, setServerError] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
+
+  // Address search state
+  const [addressQuery, setAddressQuery] = useState("");
+  const [addressSuggestions, setAddressSuggestions] = useState<NominatimResult[]>([]);
+  const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
+  const [addressLoading, setAddressLoading] = useState(false);
+  const addressRef = useRef<HTMLDivElement>(null);
+
+  // City search state
+  const [cityQuery, setCityQuery] = useState("");
+  const [citySuggestions, setCitySuggestions] = useState<NominatimResult[]>([]);
+  const [showCitySuggestions, setShowCitySuggestions] = useState(false);
+  const [cityLoading, setCityLoading] = useState(false);
+  const cityRef = useRef<HTMLDivElement>(null);
+
+  const debouncedAddressQuery = useDebounce(addressQuery, 300);
+  const debouncedCityQuery = useDebounce(cityQuery, 300);
 
   const [form, setForm] = useState({
     title: "",
@@ -53,6 +118,108 @@ export default function NewListingPage() {
   function prevStep() {
     if (stepIndex > 0) setStep(STEPS[stepIndex - 1]);
   }
+
+  // Nominatim address search
+  useEffect(() => {
+    if (!debouncedAddressQuery || debouncedAddressQuery.length < 3) {
+      setAddressSuggestions([]);
+      return;
+    }
+    let cancelled = false;
+    setAddressLoading(true);
+    const countryCode = form.country ? COUNTRY_CODES[form.country] : "";
+    const countryParam = countryCode ? `&countrycodes=${countryCode}` : "";
+    fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(debouncedAddressQuery)}&addressdetails=1&limit=5${countryParam}&email=noreply@apartmentfinder.eu`
+    )
+      .then((r) => r.json())
+      .then((data: NominatimResult[]) => {
+        if (!cancelled) {
+          setAddressSuggestions(data);
+          setShowAddressSuggestions(data.length > 0);
+        }
+      })
+      .catch(() => { if (!cancelled) setAddressSuggestions([]); })
+      .finally(() => { if (!cancelled) setAddressLoading(false); });
+    return () => { cancelled = true; };
+  }, [debouncedAddressQuery, form.country]);
+
+  // Nominatim city search (filtered by country)
+  useEffect(() => {
+    if (!debouncedCityQuery || debouncedCityQuery.length < 2) {
+      setCitySuggestions([]);
+      return;
+    }
+    let cancelled = false;
+    setCityLoading(true);
+    const countryCode = form.country ? COUNTRY_CODES[form.country] : "";
+    const countryParam = countryCode ? `&countrycodes=${countryCode}` : "";
+    fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(debouncedCityQuery)}&addressdetails=1&limit=5&type=city${countryParam}&email=noreply@apartmentfinder.eu`
+    )
+      .then((r) => r.json())
+      .then((data: NominatimResult[]) => {
+        if (!cancelled) {
+          setCitySuggestions(data);
+          setShowCitySuggestions(data.length > 0);
+        }
+      })
+      .catch(() => { if (!cancelled) setCitySuggestions([]); })
+      .finally(() => { if (!cancelled) setCityLoading(false); });
+    return () => { cancelled = true; };
+  }, [debouncedCityQuery, form.country]);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (addressRef.current && !addressRef.current.contains(e.target as Node)) {
+        setShowAddressSuggestions(false);
+      }
+      if (cityRef.current && !cityRef.current.contains(e.target as Node)) {
+        setShowCitySuggestions(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  const selectAddressSuggestion = useCallback((result: NominatimResult) => {
+    const addr = result.address || {};
+    const street = [addr.road, addr.house_number].filter(Boolean).join(" ");
+    const city = addr.city || addr.town || addr.village || "";
+    const neighborhood = addr.suburb || addr.neighbourhood || "";
+    const postalCode = addr.postcode || "";
+    // Find matching country name from our list
+    const countryName = EUROPEAN_COUNTRIES.find(
+      (c) => COUNTRY_CODES[c] === addr.country_code
+    ) || addr.country || "";
+
+    setForm((prev) => ({
+      ...prev,
+      street,
+      city,
+      neighborhood,
+      postalCode,
+      country: countryName,
+      lat: parseFloat(result.lat),
+      lng: parseFloat(result.lon),
+    }));
+    setCityQuery(city);
+    setAddressQuery(result.display_name);
+    setShowAddressSuggestions(false);
+  }, []);
+
+  const selectCitySuggestion = useCallback((result: NominatimResult) => {
+    const addr = result.address || {};
+    const city = addr.city || addr.town || addr.village || result.display_name.split(",")[0];
+    setCityQuery(city);
+    setForm((prev) => ({ ...prev, city }));
+    setShowCitySuggestions(false);
+  }, []);
+
+  const handleMapLocationChange = useCallback((lat: number, lng: number) => {
+    setForm((prev) => ({ ...prev, lat, lng }));
+  }, []);
 
   async function handleSubmit() {
     setServerError("");
@@ -222,18 +389,98 @@ export default function NewListingPage() {
           {step === "address" && (
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-4">Address & Location</h2>
+
+              {/* Address search autocomplete */}
+              <div ref={addressRef} className="relative">
+                <label htmlFor="addressSearch" className="block text-sm font-medium text-[var(--text-primary)] mb-1">Search Address</label>
+                <input
+                  id="addressSearch"
+                  type="text"
+                  value={addressQuery}
+                  onChange={(e) => { setAddressQuery(e.target.value); setShowAddressSuggestions(true); }}
+                  className="w-full px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-navy-500"
+                  placeholder="Start typing an address…"
+                  autoComplete="off"
+                />
+                {addressLoading && (
+                  <div className="absolute right-3 top-9 text-xs text-[var(--text-muted)]">Searching…</div>
+                )}
+                {showAddressSuggestions && addressSuggestions.length > 0 && (
+                  <ul className="absolute z-50 w-full mt-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {addressSuggestions.map((s) => (
+                      <li key={s.place_id}>
+                        <button
+                          type="button"
+                          onClick={() => selectAddressSuggestion(s)}
+                          className="w-full text-left px-3 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--background-secondary)] transition-colors"
+                        >
+                          {s.display_name}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              {/* Country dropdown */}
+              <div>
+                <label htmlFor="country" className="block text-sm font-medium text-[var(--text-primary)] mb-1">Country</label>
+                <select
+                  id="country"
+                  value={form.country}
+                  onChange={(e) => updateField("country", e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-navy-500"
+                >
+                  <option value="">Select a country</option>
+                  {EUROPEAN_COUNTRIES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Street */}
               <div>
                 <label htmlFor="street" className="block text-sm font-medium text-[var(--text-primary)] mb-1">Street</label>
                 <input id="street" type="text" value={form.street} onChange={(e) => updateField("street", e.target.value)}
                   className="w-full px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-navy-500"
                   placeholder="123 Main Street" />
               </div>
+
               <div className="grid grid-cols-2 gap-4">
-                <div>
+                {/* City with autocomplete */}
+                <div ref={cityRef} className="relative">
                   <label htmlFor="city" className="block text-sm font-medium text-[var(--text-primary)] mb-1">City</label>
-                  <input id="city" type="text" value={form.city} onChange={(e) => updateField("city", e.target.value)}
+                  <input
+                    id="city"
+                    type="text"
+                    value={cityQuery || form.city}
+                    onChange={(e) => {
+                      setCityQuery(e.target.value);
+                      updateField("city", e.target.value);
+                      setShowCitySuggestions(true);
+                    }}
                     className="w-full px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-navy-500"
-                    placeholder="Berlin" />
+                    placeholder="Berlin"
+                    autoComplete="off"
+                  />
+                  {cityLoading && (
+                    <div className="absolute right-3 top-9 text-xs text-[var(--text-muted)]">…</div>
+                  )}
+                  {showCitySuggestions && citySuggestions.length > 0 && (
+                    <ul className="absolute z-50 w-full mt-1 bg-[var(--surface)] border border-[var(--border)] rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      {citySuggestions.map((s) => (
+                        <li key={s.place_id}>
+                          <button
+                            type="button"
+                            onClick={() => selectCitySuggestion(s)}
+                            className="w-full text-left px-3 py-2 text-sm text-[var(--text-primary)] hover:bg-[var(--background-secondary)] transition-colors"
+                          >
+                            {s.display_name}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
                 <div>
                   <label htmlFor="neighborhood" className="block text-sm font-medium text-[var(--text-primary)] mb-1">Neighborhood (optional)</label>
@@ -242,33 +489,38 @@ export default function NewListingPage() {
                     placeholder="Mitte" />
                 </div>
               </div>
+
+              <div>
+                <label htmlFor="postalCode" className="block text-sm font-medium text-[var(--text-primary)] mb-1">Postal Code</label>
+                <input id="postalCode" type="text" value={form.postalCode} onChange={(e) => updateField("postalCode", e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-navy-500"
+                  placeholder="10115" />
+              </div>
+
+              {/* Lat/Lng display (read-only, set by map or search) */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="postalCode" className="block text-sm font-medium text-[var(--text-primary)] mb-1">Postal Code</label>
-                  <input id="postalCode" type="text" value={form.postalCode} onChange={(e) => updateField("postalCode", e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-navy-500"
-                    placeholder="10115" />
+                  <label className="block text-sm font-medium text-[var(--text-muted)] mb-1">Latitude</label>
+                  <div className="px-3 py-2 rounded-lg bg-[var(--background-secondary)] border border-[var(--border)] text-sm text-[var(--text-secondary)]">
+                    {form.lat !== 0 ? form.lat.toFixed(6) : "—"}
+                  </div>
                 </div>
                 <div>
-                  <label htmlFor="country" className="block text-sm font-medium text-[var(--text-primary)] mb-1">Country</label>
-                  <input id="country" type="text" value={form.country} onChange={(e) => updateField("country", e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-navy-500"
-                    placeholder="Germany" />
+                  <label className="block text-sm font-medium text-[var(--text-muted)] mb-1">Longitude</label>
+                  <div className="px-3 py-2 rounded-lg bg-[var(--background-secondary)] border border-[var(--border)] text-sm text-[var(--text-secondary)]">
+                    {form.lng !== 0 ? form.lng.toFixed(6) : "—"}
+                  </div>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="lng" className="block text-sm font-medium text-[var(--text-primary)] mb-1">Longitude</label>
-                  <input id="lng" type="number" step="any" value={form.lng} onChange={(e) => updateField("lng", Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-navy-500" />
-                </div>
-                <div>
-                  <label htmlFor="lat" className="block text-sm font-medium text-[var(--text-primary)] mb-1">Latitude</label>
-                  <input id="lat" type="number" step="any" value={form.lat} onChange={(e) => updateField("lat", Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-navy-500" />
+
+              {/* Map picker */}
+              <div>
+                <label className="block text-sm font-medium text-[var(--text-primary)] mb-1">Pin Location</label>
+                <p className="text-xs text-[var(--text-muted)] mb-2">Click on the map to adjust the pin position.</p>
+                <div className="rounded-xl overflow-hidden border border-[var(--border)]" style={{ height: 300 }}>
+                  <LocationPickerMap lat={form.lat} lng={form.lng} onLocationChange={handleMapLocationChange} />
                 </div>
               </div>
-              <p className="text-xs text-[var(--text-muted)]">Map pin placement will be available in a future update.</p>
             </div>
           )}
 

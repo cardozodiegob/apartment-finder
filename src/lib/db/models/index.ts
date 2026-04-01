@@ -5,6 +5,7 @@ export { default as Payment } from "./Payment";
 export { default as Report } from "./Report";
 export { default as Notification } from "./Notification";
 export { default as ConsentLog } from "./ConsentLog";
+export { default as EmailLog } from "./EmailLog";
 
 export type { IUser, INotificationPreferences } from "./User";
 export type { IListing, IAddress, IGeoLocation } from "./Listing";
@@ -13,3 +14,4 @@ export type { IPayment, PaymentStatus, PaymentCurrency } from "./Payment";
 export type { IReport, ReportCategory, ReportStatus } from "./Report";
 export type { INotification, NotificationType } from "./Notification";
 export type { IConsentLog } from "./ConsentLog";
+export type { IEmailLog } from "./EmailLog";

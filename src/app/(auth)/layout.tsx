@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useTheme } from "@/lib/context/ThemeContext";
+import { LogoIcon } from "@/components/icons";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   const { theme, toggleTheme } = useTheme();
@@ -26,8 +27,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </button>
       </div>
 
-      <Link href="/" className="mb-8 text-2xl font-bold text-[var(--text-primary)]">
-        Apartment Finder
+      <Link href="/" className="mb-8 text-2xl font-bold text-[var(--text-primary)] flex items-center gap-2">
+        <LogoIcon size={28} /> Apartment Finder
       </Link>
 
       <div className="w-full max-w-md">

@@ -68,9 +68,9 @@ const PaymentSchema = new Schema<IPayment>(
   { timestamps: true }
 );
 
-// Indexes for querying payments by seeker and poster
-PaymentSchema.index({ seekerId: 1 });
-PaymentSchema.index({ posterId: 1 });
+// Compound indexes for querying payments by seeker/poster and status
+PaymentSchema.index({ seekerId: 1, status: 1 });
+PaymentSchema.index({ posterId: 1, status: 1 });
 
 const Payment: Model<IPayment> =
   mongoose.models.Payment ||

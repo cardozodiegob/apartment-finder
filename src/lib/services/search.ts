@@ -17,6 +17,7 @@ export interface SearchParams {
   neighborhood?: string;
   page: number;
   limit: number;
+  cursor?: string;
 }
 
 export interface SearchResult {
@@ -24,6 +25,8 @@ export interface SearchResult {
   totalCount: number;
   page: number;
   totalPages: number;
+  cursor?: string;
+  timeout?: boolean;
 }
 
 export interface GeoPolygon {
@@ -47,6 +50,7 @@ export const searchParamsSchema = z.object({
   neighborhood: z.string().optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
+  cursor: z.string().optional(),
 });
 
 export const geoPolygonSchema = z.object({
@@ -115,7 +119,14 @@ export function deserializeFilters(sp: URLSearchParams): Partial<SearchParams> {
 // --- Build MongoDB query ---
 
 function buildQuery(params: SearchParams): Record<string, unknown> {
-  const query: Record<string, unknown> = { status: "active" };
+  const now = new Date();
+  const query: Record<string, unknown> = {
+    status: "active",
+    $or: [
+      { expiresAt: { $gt: now } },
+      { expiresAt: { $exists: false } },
+    ],
+  };
 
   if (params.propertyType) {
     query.propertyType = params.propertyType;
@@ -165,8 +176,15 @@ export async function search(params: SearchParams): Promise<SearchResult> {
   }
 
   const page = params.page || 1;
-  const limit = params.limit || 20;
-  const skip = (page - 1) * limit;
+  const limit = Math.min(params.limit || 20, 100);
+  const useCursor = page > 10 && params.cursor;
+
+  // For deep pages, use cursor-based pagination to avoid skip performance degradation
+  if (useCursor) {
+    query._id = { $lt: params.cursor };
+  }
+
+  const skip = useCursor ? 0 : (page - 1) * limit;
 
   try {
     const [listings, totalCount] = await Promise.all([
@@ -175,20 +193,23 @@ export async function search(params: SearchParams): Promise<SearchResult> {
         .skip(skip)
         .limit(limit)
         .maxTimeMS(QUERY_TIMEOUT_MS),
-      Listing.countDocuments(query).maxTimeMS(QUERY_TIMEOUT_MS),
+      Listing.countDocuments(buildQuery(params)).maxTimeMS(QUERY_TIMEOUT_MS),
     ]);
+
+    const lastListing = listings[listings.length - 1];
+    const cursor = lastListing ? String(lastListing._id) : undefined;
 
     return {
       listings,
       totalCount,
       page,
       totalPages: Math.ceil(totalCount / limit),
+      cursor,
     };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "";
     if (msg.includes("time") || msg.includes("timeout")) {
-      // Return partial/empty results on timeout
-      return { listings: [], totalCount: 0, page, totalPages: 0 };
+      return { listings: [], totalCount: 0, page, totalPages: 0, timeout: true };
     }
     throw err;
   }

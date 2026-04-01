@@ -1,6 +1,8 @@
 import { NextRequest } from "next/server";
 import { requestPasswordReset } from "@/lib/services/auth";
 import { ApiErrorResponse, errorResponse } from "@/lib/api/errors";
+import { checkRateLimit } from "@/lib/api/rate-limit";
+import dbConnect from "@/lib/db/connection";
 import { z } from "zod";
 
 const resetRequestSchema = z.object({
@@ -9,6 +11,17 @@ const resetRequestSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
+    await dbConnect();
+
+    // Rate limiting
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const rl = await checkRateLimit(ip, "/api/auth/reset-password");
+    if (!rl.allowed) {
+      return Response.json(
+        { code: "RATE_LIMITED", message: "Too many reset attempts. Try again later." },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds ?? 60) } }
+      );
+    }
     const body = await request.json();
 
     const parsed = resetRequestSchema.safeParse(body);
