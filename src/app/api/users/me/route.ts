@@ -4,6 +4,7 @@ import User from "@/lib/db/models/User";
 import { requireSessionUser } from "@/lib/api/session";
 import { errorResponse, ApiErrorResponse } from "@/lib/api/errors";
 import { validateIdNumber } from "@/lib/validations/identity";
+import { sanitizeText } from "@/lib/utils/sanitize";
 
 const REQUIRED_FIELDS = ["fullName", "phone", "dateOfBirth", "nationality", "idType", "idNumber"] as const;
 
@@ -33,6 +34,11 @@ export async function PUT(request: NextRequest) {
 
     if (Object.keys(updates).length === 0) {
       throw new ApiErrorResponse("VALIDATION_ERROR", "No valid fields to update", 400);
+    }
+
+    // Sanitize bio field
+    if (updates.bio && typeof updates.bio === "string") {
+      updates.bio = sanitizeText(updates.bio);
     }
 
     // Validate ID number if both idType and idNumber are provided

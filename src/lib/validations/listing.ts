@@ -38,6 +38,13 @@ export const createListingSchema = z.object({
   isSharedAccommodation: z.boolean().default(false),
   currentOccupants: z.number().int().min(0).optional(),
   availableRooms: z.number().int().min(0).optional(),
+  isFurnished: z.boolean().optional(),
+  isPetFriendly: z.boolean().optional(),
+  hasParking: z.boolean().optional(),
+  hasBalcony: z.boolean().optional(),
+  floorArea: z.number().min(0).optional(),
+  floor: z.number().int().optional(),
+  totalFloors: z.number().int().min(0).optional(),
 });
 
 export type CreateListingInput = z.infer<typeof createListingSchema>;

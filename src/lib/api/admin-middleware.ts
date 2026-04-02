@@ -1,5 +1,6 @@
 import User from "@/lib/db/models/User";
 import ModerationLog from "@/lib/db/models/ModerationLog";
+import AuditLog from "@/lib/db/models/AuditLog";
 import { ApiErrorResponse } from "@/lib/api/errors";
 
 export async function requireAdmin(userId: string): Promise<void> {
@@ -23,7 +24,19 @@ export async function logModerationAction(
   targetId: string,
   reason: string
 ): Promise<void> {
-  await ModerationLog.create({ adminId, action, targetType, targetId, reason, timestamp: new Date() });
+  const now = new Date();
+  // Write to both ModerationLog (backward compat) and AuditLog
+  await Promise.all([
+    ModerationLog.create({ adminId, action, targetType, targetId, reason, timestamp: now }),
+    AuditLog.create({
+      adminId,
+      action,
+      targetType,
+      targetId,
+      details: reason,
+      timestamp: now,
+    }),
+  ]);
 }
 
 export async function seedInitialAdmin(): Promise<void> {

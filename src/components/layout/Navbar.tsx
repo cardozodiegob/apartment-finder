@@ -92,7 +92,7 @@ export default function Navbar() {
   const userInitial = user ? (user.fullName || user.email).charAt(0).toUpperCase() : "";
 
   return (
-    <nav className="glass-nav sticky top-0 z-40">
+    <nav className="glass-nav sticky top-0 z-40" role="navigation" aria-label="Main navigation">
       {user?.isSuspended && (
         <div className="bg-red-600 text-white text-center text-sm py-2 px-4">
           Your account is suspended{user.suspensionReason ? `: ${user.suspensionReason}` : ""}. You can view content but cannot create listings, send messages, or make payments.

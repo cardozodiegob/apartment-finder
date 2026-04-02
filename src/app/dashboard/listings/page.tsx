@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useToast } from "@/lib/hooks/useToast";
 import { ToastContainer } from "@/components/ui/Toast";
+import { SkeletonCard } from "@/components/ui/Skeleton";
 
 interface ListingItem {
   _id: string;
@@ -120,7 +121,9 @@ export default function DashboardListingsPage() {
         )}
 
         {isLoading ? (
-          <p className="text-[var(--text-muted)]">Loading...</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)}
+          </div>
         ) : listings.length === 0 ? (
           <div className="glass-card text-center py-12">
             <p className="text-[var(--text-muted)] mb-4">No listings yet</p>
@@ -136,6 +139,7 @@ export default function DashboardListingsPage() {
                       src={listing.photos[0] || PLACEHOLDER_IMG}
                       alt={listing.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      loading="lazy"
                     />
                   </div>
                   <div className="flex items-start justify-between mb-2">

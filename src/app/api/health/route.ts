@@ -36,7 +36,11 @@ export async function GET() {
     status = "degraded";
   }
 
-  const body = { status, mongodb, supabase, version, timestamp };
+  const uptime = process.uptime();
+  const memoryUsage = process.memoryUsage().heapUsed / 1024 / 1024;
+  const nodeVersion = process.version;
+
+  const body = { status, mongodb, supabase, version, timestamp, uptime, memoryUsage, nodeVersion };
   const httpStatus = status === "unhealthy" ? 503 : 200;
 
   return NextResponse.json(body, { status: httpStatus });
