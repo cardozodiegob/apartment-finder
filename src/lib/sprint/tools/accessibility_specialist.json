@@ -1,0 +1,12 @@
+{
+  "role": "accessibility_specialist",
+  "allowedTools": [
+    "workspace.read",
+    "workspace.append",
+    "workspace.create_ticket",
+    "findings.emit",
+    "a11y.run_axe",
+    "journey.run",
+    "llm.think"
+  ]
+}

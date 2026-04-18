@@ -71,6 +71,7 @@ export default function FavoritesPage() {
                       src={listing?.photos?.[0] || PLACEHOLDER_IMG}
                       alt={listing?.title || "Listing"}
                       className="w-full h-40 object-cover rounded-lg mb-3"
+                      loading="lazy"
                     />
                     <h3 className="font-semibold text-[var(--text-primary)] truncate">{listing?.title || "Listing"}</h3>
                     <p className="text-sm text-[var(--text-muted)]">

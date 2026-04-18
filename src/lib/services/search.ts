@@ -13,6 +13,12 @@ export interface SearchParams {
   tags?: string[];
   purpose?: "rent" | "share" | "sublet";
   isSharedAccommodation?: boolean;
+  isFurnished?: boolean;
+  isPetFriendly?: boolean;
+  hasParking?: boolean;
+  hasBalcony?: boolean;
+  minArea?: number;
+  maxArea?: number;
   city?: string;
   country?: string;
   neighborhood?: string;
@@ -47,6 +53,12 @@ export const searchParamsSchema = z.object({
   tags: z.union([z.string(), z.array(z.string())]).optional(),
   purpose: z.enum(["rent", "share", "sublet"]).optional(),
   isSharedAccommodation: z.coerce.boolean().optional(),
+  isFurnished: z.coerce.boolean().optional(),
+  isPetFriendly: z.coerce.boolean().optional(),
+  hasParking: z.coerce.boolean().optional(),
+  hasBalcony: z.coerce.boolean().optional(),
+  minArea: z.coerce.number().min(0).optional(),
+  maxArea: z.coerce.number().min(0).optional(),
   city: z.string().optional(),
   country: z.string().optional(),
   neighborhood: z.string().optional(),
@@ -75,6 +87,12 @@ export function serializeFilters(params: Partial<SearchParams>): URLSearchParams
   if (params.tags && params.tags.length > 0) sp.set("tags", params.tags.join(","));
   if (params.purpose) sp.set("purpose", params.purpose);
   if (params.isSharedAccommodation) sp.set("isSharedAccommodation", "true");
+  if (params.isFurnished) sp.set("isFurnished", "true");
+  if (params.isPetFriendly) sp.set("isPetFriendly", "true");
+  if (params.hasParking) sp.set("hasParking", "true");
+  if (params.hasBalcony) sp.set("hasBalcony", "true");
+  if (params.minArea !== undefined && params.minArea !== null) sp.set("minArea", String(params.minArea));
+  if (params.maxArea !== undefined && params.maxArea !== null) sp.set("maxArea", String(params.maxArea));
   if (params.city) sp.set("city", params.city);
   if (params.country) sp.set("country", params.country);
   if (params.neighborhood) sp.set("neighborhood", params.neighborhood);
@@ -108,6 +126,18 @@ export function deserializeFilters(sp: URLSearchParams): Partial<SearchParams> {
   }
   const isShared = sp.get("isSharedAccommodation");
   if (isShared === "true") params.isSharedAccommodation = true;
+  const isFurnished = sp.get("isFurnished");
+  if (isFurnished === "true") params.isFurnished = true;
+  const isPetFriendly = sp.get("isPetFriendly");
+  if (isPetFriendly === "true") params.isPetFriendly = true;
+  const hasParking = sp.get("hasParking");
+  if (hasParking === "true") params.hasParking = true;
+  const hasBalcony = sp.get("hasBalcony");
+  if (hasBalcony === "true") params.hasBalcony = true;
+  const minArea = sp.get("minArea");
+  if (minArea !== null) params.minArea = Number(minArea);
+  const maxArea = sp.get("maxArea");
+  if (maxArea !== null) params.maxArea = Number(maxArea);
   const city = sp.get("city");
   if (city) params.city = city;
   const country = sp.get("country");
@@ -157,6 +187,24 @@ function buildQuery(params: SearchParams): Record<string, unknown> {
   }
   if (params.isSharedAccommodation) {
     query.isSharedAccommodation = true;
+  }
+  if (params.isFurnished) {
+    query.isFurnished = true;
+  }
+  if (params.isPetFriendly) {
+    query.isPetFriendly = true;
+  }
+  if (params.hasParking) {
+    query.hasParking = true;
+  }
+  if (params.hasBalcony) {
+    query.hasBalcony = true;
+  }
+  if (params.minArea !== undefined || params.maxArea !== undefined) {
+    const areaFilter: Record<string, number> = {};
+    if (params.minArea !== undefined) areaFilter.$gte = params.minArea;
+    if (params.maxArea !== undefined) areaFilter.$lte = params.maxArea;
+    query.floorArea = areaFilter;
   }
   if (params.city) {
     query["address.city"] = params.city;

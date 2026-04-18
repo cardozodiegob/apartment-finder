@@ -1,0 +1,25 @@
+{
+  "name": "non_english_speaker",
+  "goals": [
+    "Browse listings in a preferred non-English language",
+    "Contact landlords with localized messaging",
+    "Understand pricing in a local currency"
+  ],
+  "constraints": [
+    "Limited English reading proficiency",
+    "Expects all UI strings to be translated",
+    "Expects locale-appropriate number and date formatting"
+  ],
+  "preferredLocale": "es",
+  "deviceProfile": {
+    "viewport": { "width": 1280, "height": 800 },
+    "userAgent": "desktop chrome latest"
+  },
+  "journeyIds": [
+    "search-apartments",
+    "view-listing-detail",
+    "switch-locale",
+    "send-message",
+    "read-blog-article"
+  ]
+}

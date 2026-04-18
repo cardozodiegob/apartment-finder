@@ -40,6 +40,13 @@ export interface IListing extends Document {
   isSharedAccommodation: boolean;
   currentOccupants?: number;
   availableRooms?: number;
+  isFurnished?: boolean;
+  isPetFriendly?: boolean;
+  hasParking?: boolean;
+  hasBalcony?: boolean;
+  floorArea?: number;
+  floor?: number;
+  totalFloors?: number;
   status: "draft" | "active" | "under_review" | "archived";
   isFeatured: boolean;
   scamRiskLevel?: "low" | "medium" | "high";
@@ -117,6 +124,13 @@ const ListingSchema = new Schema<IListing>(
     isSharedAccommodation: { type: Boolean, default: false },
     currentOccupants: { type: Number },
     availableRooms: { type: Number },
+    isFurnished: { type: Boolean },
+    isPetFriendly: { type: Boolean },
+    hasParking: { type: Boolean },
+    hasBalcony: { type: Boolean },
+    floorArea: { type: Number, min: 0 },
+    floor: { type: Number },
+    totalFloors: { type: Number },
     status: {
       type: String,
       enum: ["draft", "active", "under_review", "archived"],
@@ -154,6 +168,15 @@ ListingSchema.index({ location: "2dsphere" });
 
 // Compound index for user listing queries by poster and status
 ListingSchema.index({ posterId: 1, status: 1 });
+
+// Index for expiration cron queries
+ListingSchema.index({ expiresAt: 1 });
+
+// Index for featured listings query
+ListingSchema.index({ isFeatured: 1, status: 1 });
+
+// Index for country/city search
+ListingSchema.index({ "address.country": 1, "address.city": 1 });
 
 const Listing: Model<IListing> =
   mongoose.models.Listing || mongoose.model<IListing>("Listing", ListingSchema);

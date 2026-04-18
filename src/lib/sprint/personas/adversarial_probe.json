@@ -1,0 +1,27 @@
+{
+  "name": "adversarial_probe",
+  "goals": [
+    "Probe the app's DAST surface for common web vulnerabilities",
+    "Attempt IDOR, SSRF, session fixation, and rate-limit bypass",
+    "Exercise admin routes without admin privileges"
+  ],
+  "constraints": [
+    "Restricted to localhost and the configured test instance base URL",
+    "Never probes external hosts",
+    "Emits one finding per successful probe"
+  ],
+  "preferredLocale": "en",
+  "deviceProfile": {
+    "viewport": { "width": 1280, "height": 800 },
+    "userAgent": "sprint dast probe runner"
+  },
+  "journeyIds": [
+    "idor-users",
+    "idor-listings",
+    "idor-messages",
+    "session-fixation",
+    "ssrf",
+    "rate-limit-bypass",
+    "unauth-admin"
+  ]
+}

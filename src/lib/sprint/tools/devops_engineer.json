@@ -1,0 +1,11 @@
+{
+  "role": "devops_engineer",
+  "allowedTools": [
+    "workspace.read",
+    "workspace.append",
+    "workspace.create_ticket",
+    "findings.emit",
+    "lighthouse.run",
+    "llm.think"
+  ]
+}

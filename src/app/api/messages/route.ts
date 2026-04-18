@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { requireActiveUser } from "@/lib/api/session";
 import { sendMessage } from "@/lib/services/messages";
 import { ApiErrorResponse, errorResponse } from "@/lib/api/errors";
+import { sanitizeText } from "@/lib/utils/sanitize";
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,10 +26,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const sanitizedBody = sanitizeText(messageBody);
+
     const { message, error } = await sendMessage(
       user.mongoId,
       listingId,
-      messageBody
+      sanitizedBody
     );
     if (error) {
       throw new ApiErrorResponse("MESSAGE_ERROR", error, 400);

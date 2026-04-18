@@ -1,0 +1,115 @@
+{
+  "_meta": {
+    "description": "Dynamic application security testing probes executed by the adversarial_probe persona against the isolated sprint test instance only. Every probe's pathTemplate is resolved against SPRINT_TEST_BASE_URL; external hosts are hard-rejected by the Journey_Runner.",
+    "version": 1,
+    "scope": "localhost-only"
+  },
+  "probes": [
+    {
+      "id": "idor-users",
+      "title": "IDOR on /api/users/:id",
+      "description": "Authenticate as user A and attempt to GET another user's profile by id. Any 2xx response leaking another user's private fields indicates an insecure direct object reference.",
+      "severity": "high",
+      "category": "security",
+      "method": "GET",
+      "pathTemplate": "/api/users/{otherUserId}",
+      "auth": "session:userA",
+      "expect": { "statusIn": [401, 403, 404] }
+    },
+    {
+      "id": "idor-listings",
+      "title": "IDOR on /api/listings/:id (owner-only fields and DELETE)",
+      "description": "Authenticate as user A and attempt to read owner-private fields on user B's listing, then attempt to DELETE user B's listing. Both must be rejected with an auth error.",
+      "severity": "high",
+      "category": "security",
+      "method": "GET",
+      "pathTemplate": "/api/listings/{otherUserListingId}",
+      "auth": "session:userA",
+      "expect": { "statusIn": [401, 403, 404] },
+      "followUp": [
+        {
+          "method": "DELETE",
+          "pathTemplate": "/api/listings/{otherUserListingId}",
+          "expect": { "statusIn": [401, 403, 404] }
+        }
+      ]
+    },
+    {
+      "id": "idor-messages",
+      "title": "IDOR on /api/messages/*",
+      "description": "Authenticate as user A and attempt to GET a message belonging to a conversation user A is not a participant in. Any response exposing the message body indicates an IDOR.",
+      "severity": "high",
+      "category": "security",
+      "method": "GET",
+      "pathTemplate": "/api/messages/{otherUserMessageId}",
+      "auth": "session:userA",
+      "expect": { "statusIn": [401, 403, 404] }
+    },
+    {
+      "id": "session-fixation",
+      "title": "Session fixation after login",
+      "description": "Capture the session cookie value before login, authenticate, then compare the post-login session cookie value. The server must rotate the session identifier on login; a match indicates a session-fixation vulnerability.",
+      "severity": "high",
+      "category": "security",
+      "method": "POST",
+      "pathTemplate": "/api/auth/login",
+      "preSessionCapture": true,
+      "expect": {
+        "statusIn": [200, 302],
+        "sessionIdRotated": true
+      }
+    },
+    {
+      "id": "ssrf",
+      "title": "SSRF via user-supplied URL",
+      "description": "POST a request to any endpoint that accepts a user-supplied URL (e.g. document import, image fetch, webhook test) with a cloud metadata or internal-network target. The server must reject the URL or refuse to follow it.",
+      "severity": "critical",
+      "category": "security",
+      "method": "POST",
+      "pathTemplate": "/api/documents",
+      "body": { "sourceUrl": "http://169.254.169.254/latest/meta-data/" },
+      "targets": [
+        "http://169.254.169.254/latest/meta-data/",
+        "http://127.0.0.1:22",
+        "http://localhost:27017",
+        "http://[::1]:6379",
+        "file:///etc/passwd"
+      ],
+      "expect": { "statusIn": [400, 403, 422] }
+    },
+    {
+      "id": "rate-limit-bypass",
+      "title": "Rate-limit bypass via X-Forwarded-For rotation",
+      "description": "Flood a rate-limited endpoint (e.g. login or password reset) while rotating the X-Forwarded-For header across many fabricated IPs. The rate limiter must still return 429 once the per-account or per-session threshold is reached.",
+      "severity": "high",
+      "category": "security",
+      "method": "POST",
+      "pathTemplate": "/api/auth/login",
+      "requests": 120,
+      "rotatingHeaders": {
+        "X-Forwarded-For": "generated:ipv4",
+        "X-Real-IP": "generated:ipv4",
+        "CF-Connecting-IP": "generated:ipv4"
+      },
+      "expect": { "statusMustInclude": [429] }
+    },
+    {
+      "id": "unauth-admin",
+      "title": "Unauthenticated access to admin routes",
+      "description": "Issue GET requests to admin endpoints without any session cookie and confirm the server responds with an auth error. Any 2xx body containing admin data is a critical finding.",
+      "severity": "critical",
+      "category": "security",
+      "method": "GET",
+      "pathTemplate": "/api/admin/users",
+      "auth": "none",
+      "additionalPaths": [
+        "/api/admin/dashboard",
+        "/api/admin/listings",
+        "/api/admin/reports",
+        "/api/admin/analytics",
+        "/api/admin/audit-log"
+      ],
+      "expect": { "statusIn": [401, 403] }
+    }
+  ]
+}

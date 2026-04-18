@@ -1,0 +1,25 @@
+{
+  "name": "relocating_professional",
+  "goals": [
+    "Relocate to a new city for a job start date",
+    "Secure a furnished unit sight-unseen",
+    "Request a remote viewing before committing"
+  ],
+  "constraints": [
+    "Cannot visit in person before move-in",
+    "Needs fast landlord response times",
+    "Relies on verified listings"
+  ],
+  "preferredLocale": "en",
+  "deviceProfile": {
+    "viewport": { "width": 1440, "height": 900 },
+    "userAgent": "desktop chrome latest"
+  },
+  "journeyIds": [
+    "search-apartments",
+    "view-listing-detail",
+    "request-viewing",
+    "send-message",
+    "compare-listings"
+  ]
+}

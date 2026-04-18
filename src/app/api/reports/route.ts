@@ -2,11 +2,15 @@ import { NextRequest } from "next/server";
 import { createReport, getReports } from "@/lib/services/reports";
 import { requireSessionUser } from "@/lib/api/session";
 import { errorResponse, ApiErrorResponse } from "@/lib/api/errors";
+import { sanitizeText } from "@/lib/utils/sanitize";
 
 export async function POST(request: NextRequest) {
   try {
     const user = await requireSessionUser();
     const body = await request.json();
+    if (body.reason && typeof body.reason === "string") {
+      body.reason = sanitizeText(body.reason);
+    }
     const { report, error } = await createReport({
       ...body,
       reporterId: user.mongoId,

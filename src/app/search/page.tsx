@@ -3,6 +3,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import { SkeletonCard } from "@/components/ui/Skeleton";
+import CompareButton from "@/components/compare/CompareButton";
+import CompareBar from "@/components/compare/CompareBar";
 
 const MapView = dynamic(() => import("@/components/search/MapView"), { ssr: false });
 
@@ -28,6 +31,12 @@ interface SearchResult {
   totalCount: number;
   page: number;
   totalPages: number;
+}
+
+interface SavedSearchItem {
+  _id: string;
+  name: string;
+  filters: Record<string, unknown>;
 }
 
 const PROPERTY_TYPES = ["apartment", "room", "house"] as const;
@@ -58,9 +67,20 @@ export default function SearchPage() {
   const [city, setCity] = useState(searchParams.get("city") || "");
   const [country, setCountry] = useState(searchParams.get("country") || "");
   const [isShared, setIsShared] = useState(searchParams.get("isSharedAccommodation") === "true");
+  const [isFurnished, setIsFurnished] = useState(searchParams.get("isFurnished") === "true");
+  const [isPetFriendly, setIsPetFriendly] = useState(searchParams.get("isPetFriendly") === "true");
+  const [hasParking, setHasParking] = useState(searchParams.get("hasParking") === "true");
+  const [hasBalcony, setHasBalcony] = useState(searchParams.get("hasBalcony") === "true");
+  const [minArea, setMinArea] = useState(searchParams.get("minArea") || "");
+  const [maxArea, setMaxArea] = useState(searchParams.get("maxArea") || "");
   const [showMap, setShowMap] = useState(false);
   const [boundary, setBoundary] = useState<number[][][] | null>(null);
   const [boundaryResults, setBoundaryResults] = useState<SearchResult | null>(null);
+
+  // Saved searches
+  const [savedSearches, setSavedSearches] = useState<SavedSearchItem[]>([]);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [saveSearchName, setSaveSearchName] = useState("");
 
   const buildQueryString = useCallback(() => {
     const params = new URLSearchParams();
@@ -73,8 +93,14 @@ export default function SearchPage() {
     if (city) params.set("city", city);
     if (country) params.set("country", country);
     if (isShared) params.set("isSharedAccommodation", "true");
+    if (isFurnished) params.set("isFurnished", "true");
+    if (isPetFriendly) params.set("isPetFriendly", "true");
+    if (hasParking) params.set("hasParking", "true");
+    if (hasBalcony) params.set("hasBalcony", "true");
+    if (minArea) params.set("minArea", minArea);
+    if (maxArea) params.set("maxArea", maxArea);
     return params.toString();
-  }, [query, propertyType, purpose, priceMin, priceMax, bedrooms, city, country, isShared]);
+  }, [query, propertyType, purpose, priceMin, priceMax, bedrooms, city, country, isShared, isFurnished, isPetFriendly, hasParking, hasBalcony, minArea, maxArea]);
 
   const fetchResults = useCallback(async () => {
     setLoading(true);
@@ -93,10 +119,83 @@ export default function SearchPage() {
 
   useEffect(() => { fetchResults(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Fetch saved searches
+  const fetchSavedSearches = useCallback(async () => {
+    try {
+      const res = await fetch("/api/saved-searches");
+      if (res.ok) {
+        const data = await res.json();
+        setSavedSearches(data.savedSearches || []);
+      }
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => { fetchSavedSearches(); }, [fetchSavedSearches]);
+
+  const handleSaveSearch = async () => {
+    if (!saveSearchName.trim()) return;
+    const filters: Record<string, unknown> = {};
+    if (query) filters.query = query;
+    if (propertyType) filters.propertyType = propertyType;
+    if (purpose) filters.purpose = purpose;
+    if (priceMin) filters.priceMin = priceMin;
+    if (priceMax) filters.priceMax = priceMax;
+    if (bedrooms) filters.bedrooms = bedrooms;
+    if (city) filters.city = city;
+    if (country) filters.country = country;
+    if (isShared) filters.isSharedAccommodation = true;
+    if (isFurnished) filters.isFurnished = true;
+    if (isPetFriendly) filters.isPetFriendly = true;
+    if (hasParking) filters.hasParking = true;
+    if (hasBalcony) filters.hasBalcony = true;
+    if (minArea) filters.minArea = minArea;
+    if (maxArea) filters.maxArea = maxArea;
+    try {
+      const res = await fetch("/api/saved-searches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: saveSearchName.trim(), filters }),
+      });
+      if (res.ok) {
+        setSaveSearchName("");
+        setShowSaveModal(false);
+        fetchSavedSearches();
+      }
+    } catch { /* ignore */ }
+  };
+
+  const applySavedSearch = (filters: Record<string, unknown>) => {
+    setQuery((filters.query as string) || "");
+    setPropertyType((filters.propertyType as string) || "");
+    setPurpose((filters.purpose as string) || "");
+    setPriceMin((filters.priceMin as string) || "");
+    setPriceMax((filters.priceMax as string) || "");
+    setBedrooms((filters.bedrooms as string) || "");
+    setCity((filters.city as string) || "");
+    setCountry((filters.country as string) || "");
+    setIsShared(!!filters.isSharedAccommodation);
+    setIsFurnished(!!filters.isFurnished);
+    setIsPetFriendly(!!filters.isPetFriendly);
+    setHasParking(!!filters.hasParking);
+    setHasBalcony(!!filters.hasBalcony);
+    setMinArea((filters.minArea as string) || "");
+    setMaxArea((filters.maxArea as string) || "");
+  };
+
+  const deleteSavedSearch = async (id: string) => {
+    try {
+      await fetch(`/api/saved-searches/${id}`, { method: "DELETE" });
+      fetchSavedSearches();
+    } catch { /* ignore */ }
+  };
+
   const clearFilters = () => {
     setQuery(""); setPropertyType(""); setPurpose("");
     setPriceMin(""); setPriceMax(""); setBedrooms("");
     setCity(""); setCountry(""); setIsShared(false);
+    setIsFurnished(false); setIsPetFriendly(false);
+    setHasParking(false); setHasBalcony(false);
+    setMinArea(""); setMaxArea("");
     setBoundary(null); setBoundaryResults(null);
     router.replace("/search");
   };
@@ -210,6 +309,43 @@ export default function SearchPage() {
         Shared Accommodation
       </label>
 
+      <label className="flex items-center gap-2 text-sm text-[var(--text-primary)] min-h-[44px]">
+        <input type="checkbox" checked={isFurnished} onChange={(e) => setIsFurnished(e.target.checked)}
+          className="rounded border-[var(--border)] w-5 h-5" />
+        Furnished
+      </label>
+
+      <label className="flex items-center gap-2 text-sm text-[var(--text-primary)] min-h-[44px]">
+        <input type="checkbox" checked={isPetFriendly} onChange={(e) => setIsPetFriendly(e.target.checked)}
+          className="rounded border-[var(--border)] w-5 h-5" />
+        Pet Friendly
+      </label>
+
+      <label className="flex items-center gap-2 text-sm text-[var(--text-primary)] min-h-[44px]">
+        <input type="checkbox" checked={hasParking} onChange={(e) => setHasParking(e.target.checked)}
+          className="rounded border-[var(--border)] w-5 h-5" />
+        Parking
+      </label>
+
+      <label className="flex items-center gap-2 text-sm text-[var(--text-primary)] min-h-[44px]">
+        <input type="checkbox" checked={hasBalcony} onChange={(e) => setHasBalcony(e.target.checked)}
+          className="rounded border-[var(--border)] w-5 h-5" />
+        Balcony
+      </label>
+
+      <div className="flex gap-2">
+        <div className="flex-1">
+          <label htmlFor="min-area" className="text-xs text-[var(--text-secondary)] font-medium">Min Area (m²)</label>
+          <input id="min-area" type="number" value={minArea} onChange={(e) => setMinArea(e.target.value)} placeholder="0" min="0"
+            className="w-full mt-1 px-3 py-2 min-h-[44px] rounded-lg bg-[var(--background-secondary)] border border-[var(--border)] text-[var(--text-primary)] text-sm" />
+        </div>
+        <div className="flex-1">
+          <label htmlFor="max-area" className="text-xs text-[var(--text-secondary)] font-medium">Max Area (m²)</label>
+          <input id="max-area" type="number" value={maxArea} onChange={(e) => setMaxArea(e.target.value)} placeholder="500" min="0"
+            className="w-full mt-1 px-3 py-2 min-h-[44px] rounded-lg bg-[var(--background-secondary)] border border-[var(--border)] text-[var(--text-primary)] text-sm" />
+        </div>
+      </div>
+
       <div className="flex gap-2">
         <button onClick={() => { fetchResults(); setDrawerOpen(false); }}
           className="flex-1 px-4 py-2 min-h-[44px] bg-navy-500 text-white rounded-lg text-sm font-medium hover:bg-navy-600 transition-colors btn-press">
@@ -224,6 +360,11 @@ export default function SearchPage() {
       <button onClick={() => setShowMap(!showMap)}
         className="w-full px-4 py-2 min-h-[44px] border border-[var(--border)] text-[var(--text-secondary)] rounded-lg text-sm hover:bg-[var(--background-secondary)] transition-colors btn-press">
         {showMap ? "Hide Map" : "Show Map"}
+      </button>
+
+      <button onClick={() => setShowSaveModal(true)}
+        className="w-full px-4 py-2 min-h-[44px] border border-navy-500 text-navy-500 rounded-lg text-sm hover:bg-navy-50 dark:hover:bg-navy-900/20 transition-colors btn-press">
+        Save Search
       </button>
     </div>
   );
@@ -282,6 +423,64 @@ export default function SearchPage() {
 
         {/* Results */}
         <main className="flex-1">
+          {/* Saved Searches */}
+          {savedSearches.length > 0 && (
+            <div className="mb-4">
+              <p className="text-xs text-[var(--text-secondary)] font-medium mb-2">Saved Searches</p>
+              <div className="flex flex-wrap gap-2">
+                {savedSearches.map((ss) => (
+                  <div key={ss._id} className="flex items-center gap-1 px-3 py-1 rounded-full bg-navy-100 dark:bg-navy-800 text-navy-700 dark:text-navy-200 text-sm">
+                    <button
+                      onClick={() => { applySavedSearch(ss.filters); setTimeout(fetchResults, 0); }}
+                      className="hover:underline"
+                    >
+                      {ss.name}
+                    </button>
+                    <button
+                      onClick={() => deleteSavedSearch(ss._id)}
+                      className="ml-1 text-navy-400 hover:text-red-500 text-xs"
+                      aria-label={`Delete saved search ${ss.name}`}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Save Search Modal */}
+          {showSaveModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center">
+              <div className="fixed inset-0 bg-black/40" onClick={() => setShowSaveModal(false)} aria-hidden="true" />
+              <div className="relative glass-card w-full max-w-sm z-10">
+                <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Save Search</h3>
+                <input
+                  type="text"
+                  value={saveSearchName}
+                  onChange={(e) => setSaveSearchName(e.target.value)}
+                  placeholder="Name your search..."
+                  className="w-full px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] text-sm mb-4"
+                  autoFocus
+                />
+                <div className="flex gap-2 justify-end">
+                  <button
+                    onClick={() => setShowSaveModal(false)}
+                    className="px-4 py-2 border border-[var(--border)] text-[var(--text-secondary)] rounded-lg text-sm btn-press"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSaveSearch}
+                    disabled={!saveSearchName.trim()}
+                    className="px-4 py-2 bg-navy-500 text-white rounded-lg text-sm font-medium hover:bg-navy-600 disabled:opacity-50 btn-press"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
           {showMap && (
             <div className="mb-6 rounded-xl overflow-hidden border border-[var(--border)]" style={{ height: 400 }}>
               <MapView listings={displayResults?.listings || []} onBoundaryChange={handleBoundaryChange} />
@@ -307,12 +506,16 @@ export default function SearchPage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-            {displayResults?.listings.map((listing) => (
+            {loading ? (
+              Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
+            ) : (
+              displayResults?.listings.map((listing) => (
               <a key={listing._id} href={`/listings/${listing._id}`} className="glass-card card-hover block">
                 <img
                   src={listing.photos?.[0] || placeholderImg}
                   alt={`Photo of ${listing.title}`}
                   className="w-full h-40 object-cover rounded-lg mb-3"
+                  loading="lazy"
                   onError={(e) => { (e.target as HTMLImageElement).src = placeholderImg; }}
                 />
                 <h3 className="font-semibold text-[var(--text-primary)] truncate">{listing.title}</h3>
@@ -349,8 +552,12 @@ export default function SearchPage() {
                     Shared
                   </span>
                 )}
+                <div className="mt-2">
+                  <CompareButton listingId={listing._id} />
+                </div>
               </a>
-            ))}
+            ))
+            )}
           </div>
 
           {displayResults && displayResults.totalPages > 1 && (
@@ -364,6 +571,7 @@ export default function SearchPage() {
           )}
         </main>
       </div>
+      <CompareBar />
     </div>
   );
 }

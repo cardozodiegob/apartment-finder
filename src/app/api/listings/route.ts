@@ -3,6 +3,7 @@ import { create } from "@/lib/services/listings";
 import { createListingSchema } from "@/lib/validations/listing";
 import { requireActiveUser } from "@/lib/api/session";
 import { ApiErrorResponse, errorResponse } from "@/lib/api/errors";
+import { sanitizeText } from "@/lib/utils/sanitize";
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,6 +19,10 @@ export async function POST(request: NextRequest) {
         parsed.error.errors
       );
     }
+
+    // Sanitize user-generated text fields
+    parsed.data.title = sanitizeText(parsed.data.title);
+    parsed.data.description = sanitizeText(parsed.data.description);
 
     const result = await create(parsed.data, user.mongoId);
     if (result.error) {

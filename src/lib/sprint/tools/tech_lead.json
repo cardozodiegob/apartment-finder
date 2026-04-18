@@ -1,0 +1,15 @@
+{
+  "role": "tech_lead",
+  "allowedTools": [
+    "workspace.read",
+    "workspace.append",
+    "workspace.create_ticket",
+    "findings.emit",
+    "fix.propose",
+    "fix.verify",
+    "fix.commit",
+    "journey.run",
+    "lighthouse.run",
+    "llm.think"
+  ]
+}

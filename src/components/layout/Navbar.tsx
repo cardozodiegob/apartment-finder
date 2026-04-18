@@ -23,12 +23,16 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const [darkMode, setDarkMode] = useState(() => {
-    if (typeof document !== "undefined") return document.documentElement.classList.contains("dark");
-    return false;
-  });
+  const [darkMode, setDarkMode] = useState(false);
   const [user, setUser] = useState<SessionUser | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // Read actual dark mode state after hydration
+  useEffect(() => {
+    const isDark = document.documentElement.classList.contains("dark") || localStorage.getItem("theme") === "dark";
+    setDarkMode(isDark);
+    document.documentElement.classList.toggle("dark", isDark);
+  }, []);
 
   useEffect(() => {
     async function checkSession() {
@@ -92,7 +96,7 @@ export default function Navbar() {
   const userInitial = user ? (user.fullName || user.email).charAt(0).toUpperCase() : "";
 
   return (
-    <nav className="glass-nav sticky top-0 z-40">
+    <nav className="glass-nav sticky top-0 z-40" role="navigation" aria-label="Main navigation">
       {user?.isSuspended && (
         <div className="bg-red-600 text-white text-center text-sm py-2 px-4">
           Your account is suspended{user.suspensionReason ? `: ${user.suspensionReason}` : ""}. You can view content but cannot create listings, send messages, or make payments.
@@ -140,7 +144,7 @@ export default function Navbar() {
 
               {dropdownOpen && (
                 <div
-                  className="absolute right-0 top-full mt-2 w-56 py-2 rounded-2xl border border-[var(--glass-border)] bg-white/80 dark:bg-[#0c1754]/80 backdrop-blur-xl shadow-xl z-50"
+                  className="absolute right-0 top-full mt-2 w-56 py-2 rounded-2xl border border-[var(--glass-border)] bg-white/95 dark:bg-[#0c1754]/95 backdrop-blur-2xl shadow-xl ring-1 ring-black/5 dark:ring-white/10 z-50"
                   style={{ animation: "dropdown-enter 0.2s ease" }}
                 >
                   {/* User info header */}

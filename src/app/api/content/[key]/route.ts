@@ -3,6 +3,7 @@ import dbConnect from "@/lib/db/connection";
 import SiteContent from "@/lib/db/models/SiteContent";
 import { requireAdmin } from "@/lib/api/session";
 import { errorResponse, ApiErrorResponse } from "@/lib/api/errors";
+import { cacheHeaders } from "@/lib/api/cache";
 
 export async function GET(
   _request: NextRequest,
@@ -15,7 +16,7 @@ export async function GET(
     if (!content) {
       throw new ApiErrorResponse("NOT_FOUND", "Content not found", 404);
     }
-    return Response.json({ content });
+    return Response.json({ content }, { headers: cacheHeaders(300) });
   } catch (error) {
     return errorResponse(error);
   }

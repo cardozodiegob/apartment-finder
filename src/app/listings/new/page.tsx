@@ -95,6 +95,13 @@ export default function NewListingPage() {
     isSharedAccommodation: false,
     currentOccupants: 0,
     availableRooms: 0,
+    isFurnished: false,
+    isPetFriendly: false,
+    hasParking: false,
+    hasBalcony: false,
+    floorArea: 0,
+    floor: 0,
+    totalFloors: 0,
     street: "",
     city: "",
     neighborhood: "",
@@ -265,6 +272,13 @@ export default function NewListingPage() {
       isSharedAccommodation: form.isSharedAccommodation,
       currentOccupants: form.isSharedAccommodation ? form.currentOccupants : undefined,
       availableRooms: form.isSharedAccommodation ? form.availableRooms : undefined,
+      isFurnished: form.isFurnished || undefined,
+      isPetFriendly: form.isPetFriendly || undefined,
+      hasParking: form.hasParking || undefined,
+      hasBalcony: form.hasBalcony || undefined,
+      floorArea: form.floorArea > 0 ? form.floorArea : undefined,
+      floor: form.floor > 0 ? form.floor : undefined,
+      totalFloors: form.totalFloors > 0 ? form.totalFloors : undefined,
       address: {
         street: form.street,
         city: form.city,
@@ -411,6 +425,52 @@ export default function NewListingPage() {
                   </div>
                 </div>
               )}
+
+              {/* Property features */}
+              <div className="border-t border-[var(--border)] pt-4 mt-2">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">Property Features</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center gap-3">
+                    <input id="isFurnished" type="checkbox" checked={form.isFurnished} onChange={(e) => updateField("isFurnished", e.target.checked)}
+                      className="w-4 h-4 rounded border-[var(--border)] text-navy-500 focus:ring-navy-500" />
+                    <label htmlFor="isFurnished" className="text-sm font-medium text-[var(--text-primary)]">Furnished</label>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input id="isPetFriendly" type="checkbox" checked={form.isPetFriendly} onChange={(e) => updateField("isPetFriendly", e.target.checked)}
+                      className="w-4 h-4 rounded border-[var(--border)] text-navy-500 focus:ring-navy-500" />
+                    <label htmlFor="isPetFriendly" className="text-sm font-medium text-[var(--text-primary)]">Pet Friendly</label>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input id="hasParking" type="checkbox" checked={form.hasParking} onChange={(e) => updateField("hasParking", e.target.checked)}
+                      className="w-4 h-4 rounded border-[var(--border)] text-navy-500 focus:ring-navy-500" />
+                    <label htmlFor="hasParking" className="text-sm font-medium text-[var(--text-primary)]">Parking</label>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input id="hasBalcony" type="checkbox" checked={form.hasBalcony} onChange={(e) => updateField("hasBalcony", e.target.checked)}
+                      className="w-4 h-4 rounded border-[var(--border)] text-navy-500 focus:ring-navy-500" />
+                    <label htmlFor="hasBalcony" className="text-sm font-medium text-[var(--text-primary)]">Balcony</label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Floor details */}
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label htmlFor="floorArea" className="block text-sm font-medium text-[var(--text-primary)] mb-1">Floor Area (m²)</label>
+                  <input id="floorArea" type="number" min={0} value={form.floorArea} onChange={(e) => updateField("floorArea", Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-navy-500" />
+                </div>
+                <div>
+                  <label htmlFor="floor" className="block text-sm font-medium text-[var(--text-primary)] mb-1">Floor</label>
+                  <input id="floor" type="number" min={0} value={form.floor} onChange={(e) => updateField("floor", Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-navy-500" />
+                </div>
+                <div>
+                  <label htmlFor="totalFloors" className="block text-sm font-medium text-[var(--text-primary)] mb-1">Total Floors</label>
+                  <input id="totalFloors" type="number" min={0} value={form.totalFloors} onChange={(e) => updateField("totalFloors", Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-navy-500" />
+                </div>
+              </div>
             </div>
           )}
 

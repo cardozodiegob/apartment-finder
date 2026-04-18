@@ -1,0 +1,14 @@
+{
+  "role": "security_engineer",
+  "allowedTools": [
+    "workspace.read",
+    "workspace.append",
+    "findings.emit",
+    "security.scan_sast",
+    "security.scan_secrets",
+    "security.audit_deps",
+    "security.review_diff",
+    "journey.run",
+    "llm.think"
+  ]
+}

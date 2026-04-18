@@ -1,0 +1,25 @@
+{
+  "name": "mobile_slow_network",
+  "goals": [
+    "Search and browse listings on a mobile device",
+    "Complete a viewing request on a throttled connection",
+    "Save favorites for offline review"
+  ],
+  "constraints": [
+    "Throttled to 400 kbps / 100 ms RTT",
+    "Small touch viewport",
+    "Sensitive to page weight and render-blocking assets"
+  ],
+  "preferredLocale": "en",
+  "deviceProfile": {
+    "viewport": { "width": 390, "height": 844 },
+    "userAgent": "mobile safari iphone latest",
+    "network": { "downKbps": 400, "rttMs": 100 }
+  },
+  "journeyIds": [
+    "search-apartments",
+    "view-listing-detail",
+    "request-viewing",
+    "save-favorite"
+  ]
+}

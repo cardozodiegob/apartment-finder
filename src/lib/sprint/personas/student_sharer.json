@@ -1,0 +1,25 @@
+{
+  "name": "student_sharer",
+  "goals": [
+    "Find an affordable shared apartment near university",
+    "Split rent and utilities with roommates",
+    "Move in before the semester starts"
+  ],
+  "constraints": [
+    "Tight monthly budget",
+    "Needs short-term or semester-aligned lease",
+    "No long credit history"
+  ],
+  "preferredLocale": "en",
+  "deviceProfile": {
+    "viewport": { "width": 1280, "height": 800 },
+    "userAgent": "desktop chrome latest"
+  },
+  "journeyIds": [
+    "search-shared-listings",
+    "filter-by-price",
+    "view-listing-detail",
+    "contact-landlord",
+    "save-favorite"
+  ]
+}

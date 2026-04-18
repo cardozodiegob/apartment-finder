@@ -42,6 +42,9 @@ export default function ListingDetailPage() {
   const [listing, setListing] = useState<ListingData | null>(null);
   const [error, setError] = useState("");
   const [activePhoto, setActivePhoto] = useState(0);
+  const [viewingDate, setViewingDate] = useState("");
+  const [viewingMsg, setViewingMsg] = useState("");
+  const [viewingLoading, setViewingLoading] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -254,6 +257,58 @@ export default function ListingDetailPage() {
                 )}
               </div>
             </div>
+
+            {/* Request Viewing */}
+            {listing.status === "active" && listing.address.neighborhood && (
+              <div className="glass-card">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-2">Neighborhood Guide</h3>
+                <Link
+                  href={`/neighborhoods/${encodeURIComponent(listing.address.city)}/${encodeURIComponent(listing.address.neighborhood)}`}
+                  className="text-sm text-navy-500 hover:underline"
+                >
+                  Explore {listing.address.neighborhood} →
+                </Link>
+              </div>
+            )}
+
+            {/* Request Viewing */}
+            {listing.status === "active" && (
+              <div className="glass-card">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-2">Request a Viewing</h3>
+                <input
+                  type="datetime-local"
+                  value={viewingDate}
+                  onChange={(e) => setViewingDate(e.target.value)}
+                  min={new Date().toISOString().slice(0, 16)}
+                  className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)] text-sm mb-2"
+                />
+                <button
+                  onClick={async () => {
+                    if (!viewingDate) { setViewingMsg("Please select a date and time"); return; }
+                    setViewingLoading(true);
+                    setViewingMsg("");
+                    try {
+                      const res = await fetch("/api/viewings", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ listingId: id, proposedDate: new Date(viewingDate).toISOString() }),
+                      });
+                      const data = await res.json();
+                      if (!res.ok) setViewingMsg(data.message || "Failed to request viewing");
+                      else setViewingMsg("Viewing request sent!");
+                    } catch { setViewingMsg("Failed to request viewing"); }
+                    finally { setViewingLoading(false); }
+                  }}
+                  disabled={viewingLoading}
+                  className="w-full px-4 py-2 rounded-lg bg-navy-500 text-white text-sm font-medium hover:bg-navy-600 disabled:opacity-50 transition-colors"
+                >
+                  {viewingLoading ? "Requesting..." : "Request Viewing"}
+                </button>
+                {viewingMsg && (
+                  <p className={`text-xs mt-2 ${viewingMsg.includes("sent") ? "text-green-600" : "text-red-500"}`}>{viewingMsg}</p>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

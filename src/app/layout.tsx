@@ -6,6 +6,7 @@ import StoreProvider from "@/components/providers/StoreProvider";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/Footer";
 import CookieConsentBanner from "@/components/privacy/CookieConsentBanner";
+import PageTransition from "@/components/providers/PageTransition";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -38,8 +39,11 @@ export default async function RootLayout({
       >
         <NextIntlClientProvider messages={messages}>
           <StoreProvider>
+            <a href="#main-content" className="skip-link">Skip to content</a>
             <Navbar />
-            <main>{children}</main>
+            <main id="main-content" role="main">
+              <PageTransition>{children}</PageTransition>
+            </main>
             <Footer />
             <CookieConsentBanner />
           </StoreProvider>

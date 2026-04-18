@@ -1,0 +1,11 @@
+{
+  "role": "senior_dev",
+  "allowedTools": [
+    "workspace.read",
+    "workspace.append",
+    "workspace.create_ticket",
+    "findings.emit",
+    "fix.propose",
+    "llm.think"
+  ]
+}

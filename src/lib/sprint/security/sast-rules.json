@@ -1,0 +1,72 @@
+{
+  "_meta": {
+    "description": "Static analysis rule set used by the security_engineer agent's SAST pass over src/. Each rule is applied as a regex match against files matching filePattern. Findings are emitted with the rule's severity and category so downstream triage can group them consistently.",
+    "version": 1,
+    "appliesTo": "src/**/*.{ts,tsx,js,jsx}"
+  },
+  "rules": [
+    {
+      "id": "no-eval",
+      "title": "eval() usage",
+      "description": "Use of eval() enables arbitrary code execution when any operand is attacker-influenced. Replace with structured parsing or a safe alternative.",
+      "severity": "high",
+      "category": "security",
+      "filePattern": "src/**/*.{ts,tsx,js,jsx}",
+      "regex": "\\beval\\s*\\(",
+      "regexFlags": "g"
+    },
+    {
+      "id": "no-dangerously-set-inner-html",
+      "title": "dangerouslySetInnerHTML without explicit sanitizer",
+      "description": "Any usage of dangerouslySetInnerHTML is flagged for manual review. Ensure the HTML has been sanitized with a trusted library (e.g. DOMPurify) before rendering.",
+      "severity": "medium",
+      "category": "security",
+      "filePattern": "src/**/*.{ts,tsx,js,jsx}",
+      "regex": "dangerouslySetInnerHTML",
+      "regexFlags": "g",
+      "manualReview": true
+    },
+    {
+      "id": "hardcoded-secret-assignment",
+      "title": "Hardcoded secret in source",
+      "description": "A string literal of at least 24 characters is assigned to a variable whose name looks like a credential (key, secret, token, password, apiKey, accessKey). Confirm the value is not a real secret and move it to environment configuration if it is.",
+      "severity": "high",
+      "category": "security",
+      "filePattern": "src/**/*.{ts,tsx,js,jsx}",
+      "regex": "\\b(?:const|let|var)\\s+(?:[A-Za-z_][A-Za-z0-9_]*)?(?:key|secret|token|password|apikey|accesskey|privatekey)[A-Za-z0-9_]*\\s*[:=]\\s*['\"][^'\"\\n]{24,}['\"]",
+      "regexFlags": "gi"
+    },
+    {
+      "id": "missing-api-auth",
+      "title": "API route handler missing auth guard",
+      "description": "A route handler under src/app/api/**/route.ts exports an HTTP method function that does not appear to call requireAuth, requireAdmin, requireSession, getSession, or a similar guard. Flagged as review; many public endpoints legitimately skip auth.",
+      "severity": "medium",
+      "category": "security",
+      "filePattern": "src/app/api/**/route.ts",
+      "regex": "export\\s+(?:async\\s+)?function\\s+(?:GET|POST|PUT|PATCH|DELETE)\\s*\\((?:[^)]*)\\)\\s*(?::[^{]+)?\\{(?:(?!requireAuth|requireAdmin|requireSession|getSession|getServerSession|authorize)[\\s\\S]){0,1200}?\\}",
+      "regexFlags": "g",
+      "manualReview": true
+    },
+    {
+      "id": "missing-csrf-state-change",
+      "title": "State-changing handler lacking CSRF / origin check",
+      "description": "A POST/PUT/DELETE/PATCH route handler body does not reference a CSRF token validator or origin/referrer check. Heuristic; Next.js same-origin forms and pure JSON APIs with SameSite cookies may be acceptable without explicit CSRF tokens — confirm case-by-case.",
+      "severity": "medium",
+      "category": "security",
+      "filePattern": "src/app/api/**/route.ts",
+      "regex": "export\\s+(?:async\\s+)?function\\s+(?:POST|PUT|PATCH|DELETE)\\s*\\((?:[^)]*)\\)\\s*(?::[^{]+)?\\{(?:(?!csrf|CSRF|xsrf|XSRF|validateOrigin|checkOrigin|sameOrigin|verifyCsrfToken)[\\s\\S]){0,1500}?\\}",
+      "regexFlags": "g",
+      "manualReview": true
+    },
+    {
+      "id": "raw-nosql-injection",
+      "title": "Raw NoSQL injection pattern",
+      "description": "User-controlled input is concatenated into a MongoDB $where clause or flows directly into a Mongo query operator ($ne, $gt, $regex, etc.) without sanitization. Use typed query builders and coerce user input to the expected primitive type.",
+      "severity": "high",
+      "category": "security",
+      "filePattern": "src/**/*.{ts,tsx,js,jsx}",
+      "regex": "\\$where\\s*:\\s*(?:`[^`]*\\$\\{|['\"][^'\"]*['\"]\\s*\\+)|\\$(?:ne|gt|gte|lt|lte|in|nin|regex)\\s*:\\s*req\\.(?:body|query|params)",
+      "regexFlags": "g"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "name": "screen_reader_user",
+  "goals": [
+    "Navigate the entire site using a screen reader",
+    "Complete core flows with keyboard only",
+    "Expect WCAG 2.1 AA conformance on every page"
+  ],
+  "constraints": [
+    "Relies on ARIA labels and landmarks",
+    "Requires keyboard-accessible interactive elements",
+    "Expects visible focus outlines and skip links"
+  ],
+  "preferredLocale": "en",
+  "deviceProfile": {
+    "viewport": { "width": 1280, "height": 800 },
+    "userAgent": "desktop chrome latest with assistive tech"
+  },
+  "journeyIds": [
+    "axe-accessibility-sweep",
+    "keyboard-navigation-sweep",
+    "search-apartments",
+    "view-listing-detail",
+    "send-message"
+  ]
+}

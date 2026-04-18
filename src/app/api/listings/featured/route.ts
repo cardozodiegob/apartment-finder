@@ -1,6 +1,7 @@
 import Listing from "@/lib/db/models/Listing";
 import dbConnect from "@/lib/db/connection";
 import { errorResponse } from "@/lib/api/errors";
+import { cacheHeaders } from "@/lib/api/cache";
 
 export async function GET() {
   try {
@@ -19,7 +20,7 @@ export async function GET() {
         .limit(6);
     }
 
-    return Response.json({ listings });
+    return Response.json({ listings }, { headers: cacheHeaders(300) });
   } catch (error) {
     return errorResponse(error);
   }

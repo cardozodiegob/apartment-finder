@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { search, searchParamsSchema } from "@/lib/services/search";
 import { errorResponse } from "@/lib/api/errors";
+import { cacheHeaders } from "@/lib/api/cache";
 
 export async function GET(request: NextRequest) {
   try {
@@ -32,7 +33,7 @@ export async function GET(request: NextRequest) {
     };
 
     const result = await search(searchParams);
-    return Response.json(result);
+    return Response.json(result, { headers: cacheHeaders(300) });
   } catch (error) {
     return errorResponse(error);
   }

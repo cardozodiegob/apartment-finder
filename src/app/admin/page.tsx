@@ -49,6 +49,9 @@ export default function AdminDashboard() {
           <Link href="/admin/reports" className="px-4 py-2 bg-navy-500 text-white rounded-lg text-sm font-medium hover:bg-navy-600">Report Queue</Link>
           <Link href="/admin/scam-review" className="px-4 py-2 bg-navy-500 text-white rounded-lg text-sm font-medium hover:bg-navy-600">Scam Review</Link>
           <Link href="/admin/content" className="px-4 py-2 bg-navy-500 text-white rounded-lg text-sm font-medium hover:bg-navy-600">Content Management</Link>
+          <Link href="/admin/neighborhoods" className="px-4 py-2 bg-navy-500 text-white rounded-lg text-sm font-medium hover:bg-navy-600">Neighborhood Guides</Link>
+          <Link href="/admin/blog" className="px-4 py-2 bg-navy-500 text-white rounded-lg text-sm font-medium hover:bg-navy-600">Blog</Link>
+          <Link href="/admin/audit-log" className="px-4 py-2 bg-navy-500 text-white rounded-lg text-sm font-medium hover:bg-navy-600">Audit Log</Link>
         </div>
       </div>
     </div>
