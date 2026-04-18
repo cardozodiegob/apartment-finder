@@ -1,0 +1,11 @@
+{
+  "role": "ux_designer",
+  "allowedTools": [
+    "workspace.read",
+    "workspace.append",
+    "workspace.create_ticket",
+    "findings.emit",
+    "journey.run",
+    "llm.think"
+  ]
+}

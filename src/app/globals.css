@@ -275,3 +275,13 @@ body {
 .skip-link:focus {
   top: 0;
 }
+
+/* Ensure glass-card links are always clickable */
+a.glass-card {
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}

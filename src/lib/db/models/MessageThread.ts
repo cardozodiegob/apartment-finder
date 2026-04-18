@@ -4,6 +4,7 @@ export interface IMessageThread extends Document {
   listingId: Types.ObjectId;
   participants: [Types.ObjectId, Types.ObjectId];
   lastMessageAt: Date;
+  readBy: Map<string, Date>;
   createdAt: Date;
 }
 
@@ -19,6 +20,7 @@ const MessageThreadSchema = new Schema<IMessageThread>(
       required: true,
     },
     lastMessageAt: { type: Date, default: Date.now },
+    readBy: { type: Map, of: Date, default: () => new Map() },
   },
   { timestamps: { createdAt: true, updatedAt: false } }
 );

@@ -1,0 +1,24 @@
+{
+  "name": "elderly_user",
+  "goals": [
+    "Browse listings with comfortable text sizes",
+    "Complete simple search and contact flows",
+    "Receive clear confirmations at each step"
+  ],
+  "constraints": [
+    "Prefers larger default font sizes",
+    "Uses an older browser version",
+    "Sensitive to small touch targets and complex interactions"
+  ],
+  "preferredLocale": "en",
+  "deviceProfile": {
+    "viewport": { "width": 1600, "height": 1000 },
+    "userAgent": "desktop firefox older"
+  },
+  "journeyIds": [
+    "search-apartments",
+    "view-listing-detail",
+    "send-message",
+    "save-favorite"
+  ]
+}

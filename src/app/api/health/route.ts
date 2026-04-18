@@ -40,7 +40,8 @@ export async function GET() {
   const memoryUsage = process.memoryUsage().heapUsed / 1024 / 1024;
   const nodeVersion = process.version;
 
-  const body = { status, mongodb, supabase, version, timestamp, uptime, memoryUsage, nodeVersion };
+  const dbName = mongoose.connection.db?.databaseName || "unknown";
+  const body = { status, mongodb, dbName, supabase, version, timestamp, uptime, memoryUsage, nodeVersion };
   const httpStatus = status === "unhealthy" ? 503 : 200;
 
   return NextResponse.json(body, { status: httpStatus });

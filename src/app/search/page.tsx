@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { SkeletonCard } from "@/components/ui/Skeleton";
+import CompareButton from "@/components/compare/CompareButton";
+import CompareBar from "@/components/compare/CompareBar";
 
 const MapView = dynamic(() => import("@/components/search/MapView"), { ssr: false });
 
@@ -550,6 +552,9 @@ export default function SearchPage() {
                     Shared
                   </span>
                 )}
+                <div className="mt-2">
+                  <CompareButton listingId={listing._id} />
+                </div>
               </a>
             ))
             )}
@@ -566,6 +571,7 @@ export default function SearchPage() {
           )}
         </main>
       </div>
+      <CompareBar />
     </div>
   );
 }

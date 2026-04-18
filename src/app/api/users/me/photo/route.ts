@@ -39,7 +39,10 @@ export async function POST(request: Request) {
       });
 
     if (uploadError) {
-      throw new ApiErrorResponse("UPLOAD_ERROR", uploadError.message, 500);
+      const msg = uploadError.message?.includes("not found") || uploadError.message?.includes("Bucket")
+        ? "Storage bucket 'profile-photos' not found. Please create it in your Supabase dashboard (Storage > New Bucket > 'profile-photos' > Public)."
+        : uploadError.message;
+      throw new ApiErrorResponse("UPLOAD_ERROR", msg, 500);
     }
 
     const { data: urlData } = supabaseAdmin.storage

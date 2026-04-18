@@ -1,0 +1,25 @@
+{
+  "name": "remote_worker",
+  "goals": [
+    "Find an apartment with reliable internet and home-office space",
+    "Compare listings across multiple neighborhoods",
+    "Read blog content about remote-friendly areas"
+  ],
+  "constraints": [
+    "Needs quiet environment for video calls",
+    "Prefers flexible lease terms",
+    "Sensitive to commute to co-working spots"
+  ],
+  "preferredLocale": "en",
+  "deviceProfile": {
+    "viewport": { "width": 1536, "height": 960 },
+    "userAgent": "desktop chrome latest"
+  },
+  "journeyIds": [
+    "search-apartments",
+    "compare-listings",
+    "view-listing-detail",
+    "read-blog-article",
+    "save-favorite"
+  ]
+}

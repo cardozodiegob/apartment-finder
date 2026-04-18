@@ -1,0 +1,25 @@
+{
+  "name": "landlord_poster",
+  "goals": [
+    "Post a new listing with photos and pricing",
+    "Respond to tenant inquiries and viewing requests",
+    "Manage and renew active listings"
+  ],
+  "constraints": [
+    "Needs quick listing creation flow",
+    "Requires clear pricing and currency options",
+    "Must verify tenant identity before scheduling viewings"
+  ],
+  "preferredLocale": "en",
+  "deviceProfile": {
+    "viewport": { "width": 1440, "height": 900 },
+    "userAgent": "desktop chrome latest"
+  },
+  "journeyIds": [
+    "create-listing",
+    "upload-listing-photos",
+    "manage-listings",
+    "respond-to-message",
+    "approve-viewing-request"
+  ]
+}

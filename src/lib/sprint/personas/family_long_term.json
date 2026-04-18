@@ -1,0 +1,26 @@
+{
+  "name": "family_long_term",
+  "goals": [
+    "Find a multi-bedroom apartment in a safe neighborhood",
+    "Sign a multi-year lease",
+    "Verify proximity to schools and parks"
+  ],
+  "constraints": [
+    "Requires at least two bedrooms",
+    "Pet-friendly building",
+    "Needs neighborhood safety and school information"
+  ],
+  "preferredLocale": "en",
+  "deviceProfile": {
+    "viewport": { "width": 1440, "height": 900 },
+    "userAgent": "desktop chrome latest"
+  },
+  "journeyIds": [
+    "search-apartments",
+    "filter-by-bedrooms",
+    "view-neighborhood-detail",
+    "view-listing-detail",
+    "request-viewing",
+    "save-favorite"
+  ]
+}

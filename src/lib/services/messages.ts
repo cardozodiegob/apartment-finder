@@ -127,6 +127,11 @@ export async function getMessages(
     }
 
     const messages = await Message.find({ threadId }).sort({ createdAt: 1 });
+
+    // Mark thread as read for this user
+    thread.readBy.set(userId, new Date());
+    await thread.save();
+
     return { messages, error: null };
   } catch (err: unknown) {
     const msg =

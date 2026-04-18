@@ -6,6 +6,14 @@ export { default as Report } from "./Report";
 export { default as Notification } from "./Notification";
 export { default as ConsentLog } from "./ConsentLog";
 export { default as EmailLog } from "./EmailLog";
+export { default as Viewing } from "./Viewing";
+export { default as TenantDocument } from "./TenantDocument";
+export { default as NeighborhoodGuide } from "./NeighborhoodGuide";
+export { default as BlogArticle } from "./BlogArticle";
+export { default as Sprint } from "./Sprint";
+export { default as Finding } from "./Finding";
+export { default as FixProposal } from "./FixProposal";
+export { default as SprintActionLog } from "./SprintActionLog";
 
 export type { IUser, INotificationPreferences } from "./User";
 export type { IListing, IAddress, IGeoLocation } from "./Listing";
@@ -15,3 +23,14 @@ export type { IReport, ReportCategory, ReportStatus } from "./Report";
 export type { INotification, NotificationType } from "./Notification";
 export type { IConsentLog } from "./ConsentLog";
 export type { IEmailLog } from "./EmailLog";
+export type { IViewing, ViewingStatus } from "./Viewing";
+export type { ITenantDocument, DocumentType } from "./TenantDocument";
+export type { INeighborhoodGuide, IAmenities } from "./NeighborhoodGuide";
+export type { IBlogArticle, BlogCategory } from "./BlogArticle";
+export type { ISprint, SprintAgentInstance } from "./Sprint";
+export type { IFinding } from "./Finding";
+export type { IFixProposal, IFileChange } from "./FixProposal";
+export type {
+  ISprintActionLog,
+  SprintActionLogOutcome,
+} from "./SprintActionLog";
