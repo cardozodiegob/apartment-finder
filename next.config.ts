@@ -2,6 +2,10 @@ import type { NextConfig } from "next";
 import createNextIntlPlugin from "next-intl/plugin";
 
 const nextConfig: NextConfig = {
+  // Produces a minimal, self-contained Node build at .next/standalone that
+  // our Dockerfile copies into a slim runtime image.
+  output: "standalone",
+
   // These packages reach into Node APIs / dynamic require paths that webpack
   // can't safely bundle into the edge / server bundle. Keep them as external
   // runtime deps so Next.js calls them from node_modules directly.
