@@ -1,0 +1,39 @@
+# Requirements Document
+
+> DRAFT — emitted by sprint {{sprintId}} on {{emittedAt}} from Fix-Proposal {{fix.id}}.
+> Review and refine before executing.
+
+## Introduction
+
+This spec was promoted from the Virtual Team Sprint Runner because the originating fix ({{fix.title}}) exceeded the auto-commit thresholds (file count, line count, or a critical-severity security finding). It consolidates the linked findings into requirements form so a human can review the scope before implementation proceeds.
+
+## Glossary
+
+- **Fix_Proposal**: The originating sprint-runner fix proposal ({{fix.id}})
+- **Sprint**: The sprint that generated this spec ({{sprintId}})
+- **Finding**: A structured issue record emitted during the sprint
+
+---
+
+## Requirements
+
+{{#each findings}}
+### Requirement {{inc @index}}: {{this.title}}
+
+**User Story:** As a system maintainer, I want to address finding {{this.id}} ({{this.category}}, {{this.severity}}), so that the underlying issue is resolved and no longer affects users.
+
+#### Acceptance Criteria
+
+1. THE system SHALL address the condition described below:
+
+    > {{this.description}}
+
+2. WHEN the conditions in the following reproduction are met, THE system SHALL NOT exhibit the reported behavior:
+
+{{#each this.reproductionSteps}}
+    {{inc @index}}. {{this}}
+{{/each}}
+
+---
+
+{{/each}}

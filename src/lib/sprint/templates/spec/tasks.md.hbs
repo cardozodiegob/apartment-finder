@@ -1,0 +1,13 @@
+# Implementation Plan
+
+## Overview
+
+Emitted from sprint {{sprintId}}, Fix-Proposal {{fix.id}} ({{fix.title}}). Complete `design.md` before checking off any of the tasks below.
+
+## Tasks
+
+{{#each findings}}
+- [ ] {{inc @index}}. Address {{this.id}} — {{this.title}}
+    - Category: {{this.category}}, Severity: {{this.severity}}
+    - _Requirements: {{inc @index}}_
+{{/each}}
