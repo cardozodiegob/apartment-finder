@@ -6,7 +6,6 @@ import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
 import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import L from "leaflet";
-import "leaflet.markercluster";
 
 // Fix Leaflet default icon
 delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl;
@@ -15,6 +14,20 @@ L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
+
+/**
+ * Lazy side-effect import of leaflet.markercluster. The plugin patches the
+ * global `L` object with `markerClusterGroup` — so it MUST run after
+ * `leaflet` is loaded AND only on the browser. A static top-level import
+ * trips Next.js's webpack layer (the package assumes a browser-like global
+ * `L`). Loading it lazily inside an effect keeps SSR happy.
+ */
+let markerClusterLoaded = false;
+async function ensureMarkerCluster(): Promise<void> {
+  if (markerClusterLoaded) return;
+  await import("leaflet.markercluster");
+  markerClusterLoaded = true;
+}
 
 function InvalidateSizeOnMount() {
   const map = useMap();
@@ -42,22 +55,34 @@ interface MapViewProps {
 function ClusterMarkers({ listings }: { listings: MapListing[] }) {
   const map = useMap();
   useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const cluster = (L as any).markerClusterGroup({
-      chunkedLoading: true,
-      showCoverageOnHover: false,
-      spiderfyOnMaxZoom: true,
-      maxClusterRadius: 60,
-    });
-    for (const listing of listings) {
-      const [lng, lat] = listing.location.coordinates;
-      const m = L.marker([lat, lng]).bindPopup(
-        `<strong>${listing.title.replace(/</g, "&lt;")}</strong><br/>${listing.currency} ${listing.monthlyRent}/mo`,
-      );
-      cluster.addLayer(m);
-    }
-    map.addLayer(cluster);
-    return () => { map.removeLayer(cluster); };
+    let cluster: L.Layer | null = null;
+    let cancelled = false;
+
+    (async () => {
+      await ensureMarkerCluster();
+      if (cancelled) return;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      cluster = (L as any).markerClusterGroup({
+        chunkedLoading: true,
+        showCoverageOnHover: false,
+        spiderfyOnMaxZoom: true,
+        maxClusterRadius: 60,
+      });
+      for (const listing of listings) {
+        const [lng, lat] = listing.location.coordinates;
+        const m = L.marker([lat, lng]).bindPopup(
+          `<strong>${listing.title.replace(/</g, "&lt;")}</strong><br/>${listing.currency} ${listing.monthlyRent}/mo`,
+        );
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (cluster as any).addLayer(m);
+      }
+      map.addLayer(cluster!);
+    })();
+
+    return () => {
+      cancelled = true;
+      if (cluster) map.removeLayer(cluster);
+    };
   }, [listings, map]);
   return null;
 }

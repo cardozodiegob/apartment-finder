@@ -148,8 +148,6 @@ export default function ListingDetailPage() {
     );
   }
 
-  const photos = photoUrls(listing.photos).length > 0 ? photoUrls(listing.photos) : [PLACEHOLDER_IMG];
-
   return (
     <div className="min-h-screen bg-[var(--background)] py-8 px-4">
       <div className="max-w-4xl mx-auto">

@@ -506,7 +506,7 @@ async function createAnthropicAdapter(model: string): Promise<ProviderAdapter> {
       );
       const text = message.content
         .filter(
-          (block): block is { type: "text"; text: string } =>
+          (block): block is Extract<(typeof message.content)[number], { type: "text" }> =>
             block.type === "text" && typeof (block as { text?: unknown }).text === "string",
         )
         .map((block) => block.text)

@@ -21,10 +21,8 @@ function emit(level: Level, message: string, fields?: LogFields) {
   };
   const line = JSON.stringify(record);
   if (level === "error" || level === "warn") {
-    // eslint-disable-next-line no-console
     console[level](line);
   } else {
-    // eslint-disable-next-line no-console
     console.log(line);
   }
 }

@@ -22,6 +22,13 @@ vi.mock("@/lib/supabase/server", () => ({
       },
     },
   },
+  supabaseServerAuth: {
+    auth: {
+      signInWithPassword: (...args: unknown[]) => mockSignInWithPassword(...args),
+      getSession: vi.fn(),
+      refreshSession: vi.fn(),
+    },
+  },
 }));
 
 vi.mock("@/lib/supabase/client", () => ({
@@ -58,7 +65,17 @@ const validEmailArb = fc
   )
   .map(([local, domain, tld]) => `${local}@${domain}.${tld}`);
 
-const validPasswordArb = fc.stringMatching(/^[A-Za-z0-9!@#$%]{8,32}$/);
+// Must contain at least one lowercase, uppercase, digit, AND special char —
+// matches the Zod validator in auth.ts.
+// Min length 3+3+1+1 = 8 characters.
+const validPasswordArb = fc
+  .tuple(
+    fc.stringMatching(/^[a-z]{3,6}$/),
+    fc.stringMatching(/^[A-Z]{3,6}$/),
+    fc.stringMatching(/^[0-9]{1,4}$/),
+    fc.stringMatching(/^[!@#$%]{1,3}$/),
+  )
+  .map(([a, b, c, d]) => `${a}${b}${c}${d}`);
 
 const validFullNameArb = fc.stringMatching(/^[A-Za-z][A-Za-z ]{0,49}$/);
 

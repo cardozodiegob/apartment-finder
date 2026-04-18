@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     // isn't configured yet — we'll just log matches in that case.
     let sendEmail: ((args: { to: string; subject: string; html: string }) => Promise<void>) | null = null;
     try {
-      const mod = (await import("@/lib/services/email")) as {
+      const mod = (await import("@/lib/services/email")) as unknown as {
         sendEmail?: (args: { to: string; subject: string; html: string }) => Promise<void>;
       };
       sendEmail = mod.sendEmail ?? null;

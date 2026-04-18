@@ -35,10 +35,19 @@ async function getPopularCities(): Promise<CityCount[]> {
 async function getFeaturedListings() {
   try {
     await dbConnect();
-    return await Listing.find({ status: "active", isFeatured: true })
+    const docs = await Listing.find({ status: "active", isFeatured: true })
       .sort({ createdAt: -1 })
       .limit(6)
       .lean();
+    return docs.map((d) => ({
+      _id: String(d._id),
+      title: d.title,
+      monthlyRent: d.monthlyRent,
+      currency: d.currency,
+      photos: (d.photos as unknown as { url: string; order: number }[] | string[]) ?? [],
+      address: d.address,
+      propertyType: d.propertyType,
+    }));
   } catch {
     return [];
   }
@@ -47,10 +56,16 @@ async function getFeaturedListings() {
 async function getBlogArticles() {
   try {
     await dbConnect();
-    return await BlogArticle.find({ isPublished: true })
+    const docs = await BlogArticle.find({ isPublished: true })
       .sort({ publishedAt: -1 })
       .limit(3)
       .lean();
+    return docs.map((d) => ({
+      slug: d.slug,
+      title: d.title,
+      featuredImageUrl: d.featuredImageUrl,
+      publishedAt: d.publishedAt,
+    }));
   } catch {
     return [];
   }

@@ -14,6 +14,15 @@ export { default as Sprint } from "./Sprint";
 export { default as Finding } from "./Finding";
 export { default as FixProposal } from "./FixProposal";
 export { default as SprintActionLog } from "./SprintActionLog";
+export { default as Message } from "./Message";
+export { default as MessageThread } from "./MessageThread";
+export { default as SavedSearch } from "./SavedSearch";
+export { default as Favorite } from "./Favorite";
+export { default as FavoriteShare } from "./FavoriteShare";
+export { default as FeatureFlag } from "./FeatureFlag";
+export { default as ErrorEvent } from "./ErrorEvent";
+export { default as DocumentRequest } from "./DocumentRequest";
+export { default as MessageTranslation } from "./MessageTranslation";
 
 export type { IUser, INotificationPreferences } from "./User";
 export type { IListing, IAddress, IGeoLocation } from "./Listing";
