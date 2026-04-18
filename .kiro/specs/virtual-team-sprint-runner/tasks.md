@@ -145,7 +145,7 @@ Language: TypeScript (derived from the design document, which uses TypeScript th
 <!-- Phase 5: Tool executor + tool implementations -->
 
 - [ ] 6. Tool executor and tool implementations
-  - [~] 6.1 Implement the tool executor (allow-list guard + audit logger)
+  - [x] 6.1 Implement the tool executor (allow-list guard + audit logger)
     - Create `src/lib/sprint/tools/executor.ts` with `ToolExecutor` that (a) verifies the tool is in the agent's frozen allow-list, (b) validates parameters against the tool's Zod schema, (c) writes exactly one `sprintActionLog` entry per call (`ok` or rejection with codes `rejected_unknown_tool`, `rejected_not_allowed`, `rejected_invalid_params`, `execution_error`), then (d) invokes the tool impl
     - The allow-list is loaded once at sprint start and frozen in memory for the sprint's lifetime; a modified manifest on disk cannot expand a running agent's powers
     - Only include `rawParameters` / `rawResponse` in the log when `SPRINT_VERBOSE_LOGS=true`
@@ -154,38 +154,38 @@ Language: TypeScript (derived from the design document, which uses TypeScript th
     - File: `src/lib/sprint/tools/__tests__/executor.property.test.ts`
     - **Property 6: Tool_Executor enforces the per-role allow-list and writes exactly one audit entry per call**
     - **Validates: Requirements 13.2, 13.3**
-  - [~] 6.3 Implement `workspace.*` tools
+  - [x] 6.3 Implement `workspace.*` tools
     - Create `src/lib/sprint/tools/impl/workspace-read.ts`, `workspace-append.ts`, `workspace-create-ticket.ts` each exporting `{ schema, run }` and delegating to the workspace writer from task 4
     - _Requirements: 3.5, 3.7, 3.9_
-  - [~] 6.4 Implement `findings.emit` tool
+  - [x] 6.4 Implement `findings.emit` tool
     - Create `src/lib/sprint/tools/impl/findings-emit.ts` that validates the finding (schema + dedup), persists to MongoDB, appends a markdown block to `findings.md`, generates the id, bumps `duplicateCount` on dedup, and triggers the critical-flag / notification rules (Property 9)
     - _Requirements: 5.1, 5.2, 5.4, 5.5, 5.6, 5.7_
   - [ ]* 6.5 Write property test for critical / security-high finding notifications (Property 9)
     - File: `src/lib/sprint/__tests__/finding-notifications.property.test.ts`
     - **Property 9: Critical / security-high findings trigger the correct notifications and flags**
     - **Validates: Requirements 5.4, 5.5**
-  - [~] 6.6 Implement `fix.propose` and `fix.verify` tools
+  - [x] 6.6 Implement `fix.propose` and `fix.verify` tools
     - Create `src/lib/sprint/tools/impl/fix-propose.ts` that validates and persists a `FixProposal` in `draft`
     - Create `src/lib/sprint/tools/impl/fix-verify.ts` that calls the verification gate (task 7) and returns the `VerificationReport`
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6_
-  - [~] 6.7 Implement `fix.commit` tool (Auto_Commit entry point)
+  - [x] 6.7 Implement `fix.commit` tool (Auto_Commit entry point)
     - Create `src/lib/sprint/tools/impl/fix-commit.ts` that gate-checks `fp.status === "passed"`, invokes the git wrapper from task 8, sets status to `committed`, stores the commit SHA, and returns the branch name
     - _Requirements: 6.7, 6.8_
-  - [~] 6.8 Implement security scan tools
+  - [x] 6.8 Implement security scan tools
     - Create `src/lib/sprint/tools/impl/security-scan-sast.ts`, `security-scan-secrets.ts`, `security-audit-deps.ts`, and `security-review-diff.ts`; each emits findings via `findings.emit` and writes full scan output to `.kiro/sprints/<id>/security/<scan>.json`
     - `security-audit-deps.ts` shells out to `npm audit --json`; SAST/secret tools consume the rule files from tasks 1.5
     - _Requirements: 7.1, 7.3, 7.4, 7.5, 7.8_
-  - [~] 6.9 Implement `journey.run`, `a11y.run_axe`, and `lighthouse.run` tools
+  - [x] 6.9 Implement `journey.run`, `a11y.run_axe`, and `lighthouse.run` tools
     - Create thin wrappers in `src/lib/sprint/tools/impl/journey-run.ts`, `a11y-run-axe.ts`, `lighthouse-run.ts` that delegate to the journey runner (task 9) and emit findings per step
     - _Requirements: 4.3, 4.10, 10.3_
-  - [~] 6.10 Implement `llm.think` tool
+  - [x] 6.10 Implement `llm.think` tool
     - Create `src/lib/sprint/tools/impl/llm-think.ts` that performs a structured reasoning call with no side-effects (writes only to the in-memory agent scratchpad) and logs an action entry
     - _Requirements: 13.2, 13.3_
 
 <!-- Phase 6: Verification gate + git safety wrapper + spec emitter -->
 
 - [ ] 7. Verification gate
-  - [~] 7.1 Implement the verification gate pipeline runner
+  - [x] 7.1 Implement the verification gate pipeline runner
     - Create `src/lib/sprint/verify.ts` that applies `FileChange`s to the sprint branch (delegates to the git wrapper), then runs `vitest --run --reporter=json` (300 s), `next lint` (180 s), `tsc --noEmit` (180 s), and conditionally the Playwright critical-flow suite (420 s) using the predicate from task 3.9
     - Enforce the 600 s global wall-clock cap; on timeout mark not-yet-run steps `timeout` and `overall = "failed"` with `rejectReason = "timeout"`
     - Retry orchestration lives in Sprint_Runner (max 3 retries per fix); the gate itself never retries internally
@@ -196,7 +196,7 @@ Language: TypeScript (derived from the design document, which uses TypeScript th
     - _Requirements: 6.4, 6.11_
 
 - [ ] 8. Git safety wrapper (Auto_Commit)
-  - [~] 8.1 Implement the `simple-git`-backed git wrapper with safety guards
+  - [x] 8.1 Implement the `simple-git`-backed git wrapper with safety guards
     - Add `simple-git` as a dep; create `src/lib/sprint/git.ts` exposing `createFixBranch`, `applyFileChanges`, `commitFix`, `mergeToMainline`, `revert`, and the `assertOnSprintBranch` / `assertNoRemotePushAttempted` guards
     - Capture the originally-checked-out branch name into `sprint.currentBranchAtStart` at sprint start; reject any operation that would check out a non-`sprint/*` branch or leave HEAD on the original branch with uncommitted fix changes
     - Do not expose `push`, `push --force`, `remote add`, `remote set-url`; intercept attempts to call them through the raw API and raise `GIT_SAFETY_VIOLATION`
@@ -217,12 +217,12 @@ Language: TypeScript (derived from the design document, which uses TypeScript th
     - _Requirements: 6.7, 6.8_
 
 - [ ] 9. Kiro spec emitter
-  - [~] 9.1 Implement the spec emitter
+  - [x] 9.1 Implement the spec emitter
     - Create `src/lib/sprint/spec-emitter.ts` that, when `shouldPromoteToSpec` returns true, derives a unique kebab-case name (via `deriveSpecName`), creates `.kiro/specs/<name>/`, and writes `.config.kiro`, `requirements.md`, `design.md` (marked "DRAFT – emitted by sprint <sprintId>"), and `tasks.md` from templates under `src/lib/sprint/templates/spec/*.hbs`
     - Set `fp.status = "promoted_to_spec"`, store `fp.promotedSpecPath`, and append a link to `retrospective.md` under "Promoted Initiatives"
     - Do not commit the emitted spec files; they remain untracked on the user's working branch
     - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 11.6_
-  - [~] 9.2 Author spec emitter templates
+  - [x] 9.2 Author spec emitter templates
     - Create `src/lib/sprint/templates/spec/requirements.md.hbs`, `design.md.hbs`, `tasks.md.hbs`, `config.kiro.hbs`
     - Template variables include sprint id, fix title, linked findings (with repro steps), and derived kebab name
     - _Requirements: 11.3, 11.4_
@@ -230,7 +230,7 @@ Language: TypeScript (derived from the design document, which uses TypeScript th
 <!-- Phase 7: Journey runner (API + Playwright) and network allow-list -->
 
 - [ ] 10. Journey runner and persona execution
-  - [~] 10.1 Implement the journey runner state machine
+  - [x] 10.1 Implement the journey runner state machine
     - Create `src/lib/sprint/journey/runner.ts` exporting `JourneyRunner.run(journey, ctx)` per the design; pure state machine; emits findings via the `findings.emit` tool call on assertion failures
     - Reject inputs where both `critical` and `bulk` are true at validation time
     - Dispatch rules: `critical` → browser, `bulk` → api, otherwise use the step's declared mode
@@ -239,13 +239,13 @@ Language: TypeScript (derived from the design document, which uses TypeScript th
     - File: `src/lib/sprint/journey/__tests__/dispatch.property.test.ts`
     - **Property 5: Journey dispatch mode follows persona flags**
     - **Validates: Requirements 4.4, 4.5**
-  - [~] 10.3 Implement persona context wrappers
+  - [x] 10.3 Implement persona context wrappers
     - Add Playwright CDP throttling for `mobile_slow_network` (400 kbps / 100 ms RTT)
     - Set `Accept-Language` header and locale cookie for `non_english_speaker` using a non-`en` locale from the app's supported locales
     - Force `axeCheck: true` on every browser step for `screen_reader_user` and emit one finding per WCAG 2.1 AA violation
     - Route `adversarial_probe` through the DAST probe set and allow-list state-changing probes to it only
     - _Requirements: 4.8, 4.9, 4.10, 4.11_
-  - [~] 10.4 Implement the network allow-list guard
+  - [x] 10.4 Implement the network allow-list guard
     - Create `src/lib/sprint/net-allowlist.ts` that intercepts outbound HTTP from the journey runner and the security engineer agent; allow only `localhost` (any port) and the host of `process.env.SPRINT_TEST_BASE_URL`; reject other hosts and log `rejected_not_allowed` to `sprintActionLog`
     - _Requirements: 4.11, 7.7_
   - [ ]* 10.5 Write property test for outbound host allow-list (Property 7)
@@ -256,11 +256,11 @@ Language: TypeScript (derived from the design document, which uses TypeScript th
 <!-- Phase 8: Isolated test-instance lifecycle -->
 
 - [ ] 11. Isolated test app instance
-  - [~] 11.1 Implement child test-instance lifecycle
+  - [x] 11.1 Implement child test-instance lifecycle
     - Create `src/lib/sprint/test-instance.ts` that spawns `next start` on `SPRINT_TEST_PORT` with `MONGODB_URI` pointed at `apartment_finder_sprint_<sprintId>` and env loaded from `.env.sprint`; exposes `start()` returning a ready signal, `stop()`, and a `close` watcher that aborts the sprint with `test_instance_crashed` on unexpected exit
     - Create `src/lib/sprint/test-db.ts` that creates and drops the `apartment_finder_sprint_<sprintId>` database at start / completion / abort
     - _Requirements: 12.1, 12.3, 12.4_
-  - [~] 11.2 Seed test-database fixtures
+  - [x] 11.2 Seed test-database fixtures
     - Create `src/lib/sprint/fixtures/*.ts` providing users per persona role, sample listings, neighborhoods, blog articles, and messages; expose `seedTestDatabase(db)` that loads all fixtures idempotently
     - _Requirements: 12.2_
   - [ ]* 11.3 Write unit tests for fixture seeding
@@ -271,12 +271,12 @@ Language: TypeScript (derived from the design document, which uses TypeScript th
 <!-- Phase 9: Agent pool + Sprint runner coordinator -->
 
 - [ ] 12. Agent pool and Sprint_Runner coordinator
-  - [~] 12.1 Implement the Agent abstraction and Agent_Pool
+  - [x] 12.1 Implement the Agent abstraction and Agent_Pool
     - Create `src/lib/sprint/agents/agent.ts` defining the `Agent` interface (`step(ctx)` -> `ToolCall | NoOp`)
     - Create `src/lib/sprint/agents/pool.ts` that instantiates one `Agent` per selected role, loads `prompts/<role>.md` and `tools/<role>.json`, and freezes both into `AgentInstance` for the sprint's lifetime
     - Reject sprint creation if `tech_lead` is not included; reject duplicates (at most one Agent per role)
     - _Requirements: 2.3, 2.4, 2.5, 2.6, 2.7_
-  - [~] 12.2 Implement the Sprint_Runner coordinator
+  - [x] 12.2 Implement the Sprint_Runner coordinator
     - Create `src/lib/sprint/runner.ts` with `create`, `start`, `abort`, `getStatus`, and an internal `tick` scheduler; holds per-sprint in-memory state keyed by `sprintId`; single-running-sprint invariant enforced both in Mongo (partial unique index) and in-process
     - On `start`: transition pending→running via `state-guard`, spawn the test instance, seed the DB, freeze manifests, and begin the agent scheduler
     - Duration elapsed OR token budget exhausted → transition to `closing`; 150% duration OR admin `abort` → `aborted` with reason; process restart rehydrates from Mongo and force-aborts stale `running`/`closing` sprints with reason `process_restart`
@@ -293,17 +293,17 @@ Language: TypeScript (derived from the design document, which uses TypeScript th
     - Test that `.env.sprint` missing a required key rejects sprint creation
     - _Requirements: 8.7, 12.5_
 
-- [~] 13. Checkpoint — Rule layer, workspace, git safety, verification
+- [x] 13. Checkpoint — Rule layer, workspace, git safety, verification
   - Ensure all tests pass, ask the user if questions arise.
 
 <!-- Phase 10: Retrospective generator + Lighthouse wiring -->
 
 - [ ] 14. Retrospective generation and metrics
-  - [~] 14.1 Implement the retrospective writer
+  - [x] 14.1 Implement the retrospective writer
     - Create `src/lib/sprint/retrospective.ts` that the tech_lead agent calls on transition to `closing`; it reads the sprint, findings, fix proposals, and computed metrics, renders the retrospective from `src/lib/sprint/templates/retrospective.md.hbs`, and appends to `.kiro/sprints/<id>/retrospective.md`
     - Mark each metric `regressed` when below threshold and list likely-responsible fix proposals by id
     - _Requirements: 10.1, 10.2, 10.4, 10.7_
-  - [~] 14.2 Implement Lighthouse integration
+  - [x] 14.2 Implement Lighthouse integration
     - Create `src/lib/sprint/lighthouse.ts` that runs `lighthouse --output json` against the test instance for the homepage and the search page, parses scores for Performance, Accessibility, Best Practices, SEO, and feeds them into the success-bar classifier
     - _Requirements: 10.3, 10.5_
   - [ ]* 14.3 Write unit tests for retrospective template rendering
@@ -314,16 +314,16 @@ Language: TypeScript (derived from the design document, which uses TypeScript th
 <!-- Phase 11: API routes under /api/admin/sprints -->
 
 - [ ] 15. Admin API routes
-  - [~] 15.1 Implement `POST/GET /api/admin/sprints`
+  - [x] 15.1 Implement `POST/GET /api/admin/sprints`
     - Create `src/app/api/admin/sprints/route.ts` using `requireAdmin()`; `POST` validates `CreateSprintInput` with Zod and delegates to `SprintRunner.create`, returning 409 on concurrent running sprint, 400 on env/validation errors; `GET` returns a paginated list sorted by `createdAt` desc with finding/fix counts
     - _Requirements: 1.1, 9.1, 9.2, 9.8, 9.9, 12.5, 12.6_
-  - [~] 15.2 Implement `GET/PATCH /api/admin/sprints/[id]`
+  - [x] 15.2 Implement `GET/PATCH /api/admin/sprints/[id]`
     - Create `src/app/api/admin/sprints/[id]/route.ts`; `GET` returns `SprintStatusView` (sprint + counts + last-N log entries); `PATCH` accepts `{ action: "start" | "abort", reason? }` and routes to `SprintRunner.start` or `SprintRunner.abort`
     - _Requirements: 1.3, 1.4, 1.7, 9.3, 9.8_
-  - [~] 15.3 Implement `POST /api/admin/sprints/[id]/action`
+  - [x] 15.3 Implement `POST /api/admin/sprints/[id]/action`
     - Create `src/app/api/admin/sprints/[id]/action/route.ts` with actions `merge_to_main` (fast-forward or squash merge of a fix's sprint branch into `mainline`) and `revert_commit` (create a revert commit on the sprint branch; set fix status to `reverted`)
     - _Requirements: 9.5, 9.6, 9.7_
-  - [~] 15.4 Implement `GET /api/admin/sprints/[id]/artifacts`
+  - [x] 15.4 Implement `GET /api/admin/sprints/[id]/artifacts`
     - Create `src/app/api/admin/sprints/[id]/artifacts/route.ts` returning rendered markdown of each shared doc, plus a `?download=actionLog` query that streams all `sprintActionLog` entries for the sprint as JSON (Requirement 13.5)
     - _Requirements: 9.3, 13.5_
   - [ ]* 15.5 Write unit tests for admin API routes
@@ -334,19 +334,19 @@ Language: TypeScript (derived from the design document, which uses TypeScript th
 <!-- Phase 12: Admin UI (component tree matches design) -->
 
 - [ ] 16. Admin UI
-  - [~] 16.1 Create the admin sprints layout with requireAdmin guard
+  - [x] 16.1 Create the admin sprints layout with requireAdmin guard
     - Create `src/app/admin/sprints/layout.tsx` that calls `requireAdmin()` at the layout level; non-admin requests redirect or render 403 via `ApiErrorResponse`
     - _Requirements: 9.8, 9.9_
-  - [~] 16.2 Create the sprint list page
+  - [x] 16.2 Create the sprint list page
     - Create `src/app/admin/sprints/page.tsx` showing paginated sprints with status, duration, selected roles, finding counts by severity, and fix-proposal counts by status
     - _Requirements: 9.1_
-  - [~] 16.3 Create the sprint creation form
+  - [x] 16.3 Create the sprint creation form
     - Create `src/app/admin/sprints/new/page.tsx` (client component) with role multiselect, persona multiselect, duration input (5..240), and goals textarea; submits to `POST /api/admin/sprints`
     - _Requirements: 9.2_
-  - [~] 16.4 Create the sprint detail shell with tabs
+  - [x] 16.4 Create the sprint detail shell with tabs
     - Create `src/app/admin/sprints/[id]/page.tsx` wrapping the six tab components; use `useSWR` with `refreshInterval: 5000` while status is `running` or `closing`, switch to static fetch on `completed`/`aborted`
     - _Requirements: 9.3, 9.4_
-  - [~] 16.5 Create the six tab components
+  - [x] 16.5 Create the six tab components
     - Create `overview-tab.tsx` (metadata, live status, elapsed time), `workspace-tab.tsx` (renders each shared doc as markdown), `findings-tab.tsx` (filterable list with severity chips), `fix-proposals-tab.tsx` (list + per-fix drawer with diff, "Merge to Main" and "Revert Commit" buttons), `retrospective-tab.tsx` (rendered retrospective.md), `action-log-tab.tsx` (`sprintActionLog` entries with JSON export link)
     - _Requirements: 9.3, 9.5, 9.6, 9.7, 13.5_
   - [ ]* 16.6 Write component tests for the admin UI
@@ -356,7 +356,7 @@ Language: TypeScript (derived from the design document, which uses TypeScript th
 <!-- Phase 13: End-to-end integration (gated) -->
 
 - [ ] 17. End-to-end integration tests (gated by `SPRINT_INTEGRATION=true`)
-  - [~] 17.1 Add the integration test harness
+  - [x] 17.1 Add the integration test harness
     - Create `src/lib/sprint/__tests__/integration/harness.ts` that spawns the test instance, seeds a temp Mongo DB, mocks the LLM client with deterministic tool-call scripts, and tears everything down on completion
     - Gate every test file in this task behind `SPRINT_INTEGRATION === "true"` using `describe.skipIf(!process.env.SPRINT_INTEGRATION)`
     - _Requirements: 12.1, 12.2, 12.3_
@@ -377,7 +377,7 @@ Language: TypeScript (derived from the design document, which uses TypeScript th
     - Submit a fix touching >10 files; assert `.kiro/specs/<kebab>/` is created with all four files, `fp.status === "promoted_to_spec"`, and no commit was made
     - _Requirements: 11.1, 11.3, 11.4, 11.5_
 
-- [~] 18. Final checkpoint — Ensure all tests pass
+- [x] 18. Final checkpoint — Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes
