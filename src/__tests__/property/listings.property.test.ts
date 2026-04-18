@@ -133,42 +133,12 @@ describe("Feature: apartment-finder, Property 3: Photo upload validation", () =>
 
 
 // --- Import listing service functions for Property 4 & 5 ---
-import { create, publish, deleteListing, getById, getByUser } from "@/lib/services/listings";
-import type { CreateListingInput } from "@/lib/validations/listing";
+import { publish, deleteListing, getById, getByUser } from "@/lib/services/listings";
 import mongoose from "mongoose";
 
 // --- Arbitraries for Property 4 & 5 ---
 
 const objectIdArb = fc.stringMatching(/^[0-9a-f]{24}$/);
-
-const validCreateInputArb: fc.Arbitrary<CreateListingInput> = fc.record({
-  title: fc.stringMatching(/^[A-Za-z][A-Za-z0-9 ]{0,49}$/),
-  description: fc.stringMatching(/^[A-Za-z][A-Za-z0-9 ]{0,99}$/),
-  propertyType: fc.constantFrom("apartment" as const, "room" as const, "house" as const),
-  purpose: fc.constantFrom("rent" as const, "share" as const, "sublet" as const),
-  address: fc.record({
-    street: fc.stringMatching(/^[A-Za-z0-9 ]{1,30}$/),
-    city: fc.stringMatching(/^[A-Za-z ]{1,20}$/),
-    postalCode: fc.stringMatching(/^[0-9]{5}$/),
-    country: fc.stringMatching(/^[A-Za-z ]{1,20}$/),
-  }),
-  location: fc.record({
-    type: fc.constant("Point" as const),
-    coordinates: fc.tuple(
-      fc.double({ min: -180, max: 180, noNaN: true }),
-      fc.double({ min: -90, max: 90, noNaN: true })
-    ),
-  }),
-  monthlyRent: fc.double({ min: 0, max: 10000, noNaN: true }),
-  currency: fc.constantFrom(
-    "EUR" as const, "USD" as const, "GBP" as const, "CHF" as const,
-    "SEK" as const, "NOK" as const, "DKK" as const, "PLN" as const,
-    "CZK" as const, "BRL" as const
-  ),
-  availableDate: fc.date({ min: new Date("2020-01-01"), max: new Date("2030-12-31") }),
-  tags: fc.array(fc.stringMatching(/^[a-z]{1,10}$/), { maxLength: 5 }),
-  isSharedAccommodation: fc.boolean(),
-});
 
 /**
  * Feature: apartment-finder, Property 4: Listing visibility is determined by status

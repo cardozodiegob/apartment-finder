@@ -35,7 +35,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     ];
     for (const field of allowedFields) {
       if (body[field] !== undefined) {
-        (listing as Record<string, unknown>)[field] = body[field];
+        (listing as unknown as Record<string, unknown>)[field] = body[field];
       }
     }
     if (body.address) {

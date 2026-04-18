@@ -101,9 +101,11 @@ export async function walkFiles(rootAbsolutePath: string): Promise<WalkResult[]>
   const results: WalkResult[] = [];
 
   async function visit(currentAbs: string): Promise<void> {
-    let entries: Awaited<ReturnType<typeof readdir>> = [];
+    // Using readdir with withFileTypes: true — types vary between @types/node
+    // releases so we annotate locally instead of relying on the typedef.
+    let entries: import("fs").Dirent[] = [];
     try {
-      entries = await readdir(currentAbs, { withFileTypes: true });
+      entries = (await readdir(currentAbs, { withFileTypes: true })) as unknown as import("fs").Dirent[];
     } catch {
       return;
     }

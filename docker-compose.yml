@@ -1,0 +1,90 @@
+# Production stack for Apartment Finder.
+#
+# Brings up two services:
+#   - web    : the Next.js app in standalone mode (Dockerfile in repo root)
+#   - mongo  : MongoDB 7 with root auth and a persistent volume
+#
+# Usage:
+#   1. Copy .env.docker.example to .env.docker and fill in the real secrets
+#      (Supabase, Stripe, Resend, Mongo password, admin seed, etc.)
+#   2. docker compose --env-file .env.docker up -d --build
+#   3. Open http://<host-ip>:3000
+#
+# To stop:       docker compose --env-file .env.docker down
+# To wipe data:  docker compose --env-file .env.docker down -v
+# To inspect:    docker compose --env-file .env.docker logs -f web
+
+name: apartment-finder
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
+    volumes:
+      - mongo-data:/data/db
+      - mongo-config:/data/configdb
+    ports:
+      # Bound to loopback so the DB isn't reachable from the LAN by default.
+      # Change to "27017:27017" if you need external clients (Compass, etc.).
+      - "127.0.0.1:27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: apartment-finder-web:latest
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      # --- Runtime ---
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      NEXT_PUBLIC_BASE_URL: ${NEXT_PUBLIC_BASE_URL}
+
+      # --- Database ---
+      # authSource=admin because the root user lives in the admin DB.
+      MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongo:27017/${MONGO_DATABASE}?authSource=admin
+
+      # --- Supabase auth ---
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+
+      # --- Stripe (payments + KYC) ---
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
+
+      # --- Email + misc ---
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      EXCHANGE_RATE_API_KEY: ${EXCHANGE_RATE_API_KEY}
+
+      # --- Cron / webhook secrets ---
+      CRON_SECRET: ${CRON_SECRET}
+      KYC_WEBHOOK_SECRET: ${KYC_WEBHOOK_SECRET}
+
+      # --- Admin bootstrap on first boot ---
+      INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD}
+
+      # --- Optional ---
+      KYC_PROVIDER: ${KYC_PROVIDER:-stripe_identity}
+      LIBRETRANSLATE_URL: ${LIBRETRANSLATE_URL:-}
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+
+volumes:
+  mongo-data:
+  mongo-config:

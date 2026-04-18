@@ -152,6 +152,8 @@ const PhotoSchema = new Schema<IListingPhoto>(
   },
   { _id: false },
 );
+// Exported so downstream migrations and admin tools can reuse the shape.
+export { PhotoSchema };
 
 const NearbyPOISchema = new Schema<INearbyPOI>(
   {

@@ -163,7 +163,7 @@ export function createTestInstance(
     // Start with the parent env, overlay .env.sprint values (without
     // clobbering existing keys), then apply the hard overrides the runner
     // must enforce: the sprint-owned Mongo URI and the bound PORT.
-    const merged: NodeJS.ProcessEnv = { ...process.env };
+    const merged = { ...process.env } as Record<string, string | undefined>;
     const sprintFile = parseDotEnvFile(envFilePath);
     for (const [k, v] of Object.entries(sprintFile)) {
       if (merged[k] === undefined || merged[k] === "") {
@@ -173,7 +173,7 @@ export function createTestInstance(
     merged.MONGODB_URI = testMongoUri;
     merged.PORT = String(port);
     merged.NODE_ENV = merged.NODE_ENV ?? "production";
-    return merged;
+    return merged as NodeJS.ProcessEnv;
   }
 
   function handleClose(code: number | null, signal: NodeJS.Signals | null): void {

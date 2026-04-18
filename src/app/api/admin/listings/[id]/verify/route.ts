@@ -33,7 +33,7 @@ export async function POST(
     listing.verificationTier = tier as typeof listing.verificationTier;
     if (tier !== "none") {
       listing.verifiedAt = new Date();
-      listing.verifiedBy = admin._id as unknown as typeof listing.verifiedBy;
+      listing.verifiedBy = admin.mongoId as unknown as typeof listing.verifiedBy;
     } else {
       listing.verifiedAt = undefined;
       listing.verifiedBy = undefined;

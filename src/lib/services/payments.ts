@@ -35,7 +35,9 @@ let stripeClient: Stripe | null = null;
 function getStripe(): Stripe {
   if (!stripeClient) {
     stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_placeholder", {
-      apiVersion: "2025-05-28.basil",
+      // Cast lets us pin to a newer API version than our @types/stripe
+      // package knows about without having to bump the dep every release.
+      apiVersion: "2025-05-28.basil" as Stripe.LatestApiVersion,
     });
   }
   return stripeClient;
