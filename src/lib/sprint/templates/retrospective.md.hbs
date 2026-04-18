@@ -1,0 +1,90 @@
+
+---
+
+## Retrospective — rendered {{generatedAt}}
+
+**Sprint:** {{sprintId}}
+**Status:** {{status}}
+**Result:** {{#if metSuccessBar}}met_success_bar ✅{{else}}below_success_bar ❌{{/if}}
+
+### Sprint Goals
+
+{{#if goals.length}}
+{{#each goals}}
+- {{this}}
+{{/each}}
+{{else}}
+_(no goals recorded)_
+{{/if}}
+
+### Success Bar
+
+{{#if metSuccessBar}}
+All seven thresholds met.
+{{else}}
+Missed thresholds:
+
+{{#each missedThresholds}}
+- **{{this.code}}** — {{this.description}}{{#if this.likelyFixProposalIds.length}} (likely-responsible fixes: {{#each this.likelyFixProposalIds}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}){{/if}}
+{{/each}}
+{{/if}}
+
+### Metrics
+
+| Metric | Value | Threshold | Status |
+|---|---|---|---|
+| Verification pass rate | {{verificationPassRate}}% | 100% | {{metricStatus.testPassRate}} |
+| High/critical security findings | {{highCriticalSecurityFindings}} | 0 | {{metricStatus.security}} |
+| Lighthouse pages below 90 | {{lighthouseBelow90Count}} | 0 | {{metricStatus.lighthouse}} |
+| Regressions vs previous sprint | {{regressionCount}} | 0 | {{metricStatus.regressions}} |
+| WCAG 2.1 AA violations | {{wcagViolationCount}} | 0 | {{metricStatus.wcag}} |
+
+### Findings ({{findingTotal}} total)
+
+{{#if findingTotal}}
+#### By category
+
+{{#each findingsByCategory}}
+- {{@key}}: {{this}}
+{{/each}}
+
+#### By severity
+
+{{#each findingsBySeverity}}
+- {{@key}}: {{this}}
+{{/each}}
+{{else}}
+_(no findings recorded)_
+{{/if}}
+
+### Fix Proposals ({{fixProposalTotal}} total)
+
+{{#if fixProposalTotal}}
+#### By status
+
+{{#each fixProposalsByStatus}}
+- {{@key}}: {{this}}
+{{/each}}
+
+#### Detail
+
+{{#each fixProposals}}
+- `[{{this.status}}]` **{{this.id}}** — {{this.title}}{{#if this.rejectReason}} _(reject: {{this.rejectReason}})_{{/if}}
+{{/each}}
+{{else}}
+_(no fix proposals recorded)_
+{{/if}}
+
+### Lighthouse
+
+{{#if lighthousePages.length}}
+{{#each lighthousePages}}
+- **{{this.page}}** ({{this.status}}){{#if this.reason}} — {{this.reason}}{{/if}}
+    - Performance: {{formatScore this.scores.performance}}
+    - Accessibility: {{formatScore this.scores.accessibility}}
+    - Best Practices: {{formatScore this.scores.bestPractices}}
+    - SEO: {{formatScore this.scores.seo}}
+{{/each}}
+{{else}}
+_(no Lighthouse results recorded)_
+{{/if}}

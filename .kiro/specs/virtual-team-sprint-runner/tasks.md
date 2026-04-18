@@ -299,11 +299,11 @@ Language: TypeScript (derived from the design document, which uses TypeScript th
 <!-- Phase 10: Retrospective generator + Lighthouse wiring -->
 
 - [ ] 14. Retrospective generation and metrics
-  - [~] 14.1 Implement the retrospective writer
+  - [x] 14.1 Implement the retrospective writer
     - Create `src/lib/sprint/retrospective.ts` that the tech_lead agent calls on transition to `closing`; it reads the sprint, findings, fix proposals, and computed metrics, renders the retrospective from `src/lib/sprint/templates/retrospective.md.hbs`, and appends to `.kiro/sprints/<id>/retrospective.md`
     - Mark each metric `regressed` when below threshold and list likely-responsible fix proposals by id
     - _Requirements: 10.1, 10.2, 10.4, 10.7_
-  - [~] 14.2 Implement Lighthouse integration
+  - [x] 14.2 Implement Lighthouse integration
     - Create `src/lib/sprint/lighthouse.ts` that runs `lighthouse --output json` against the test instance for the homepage and the search page, parses scores for Performance, Accessibility, Best Practices, SEO, and feeds them into the success-bar classifier
     - _Requirements: 10.3, 10.5_
   - [ ]* 14.3 Write unit tests for retrospective template rendering
@@ -314,16 +314,16 @@ Language: TypeScript (derived from the design document, which uses TypeScript th
 <!-- Phase 11: API routes under /api/admin/sprints -->
 
 - [ ] 15. Admin API routes
-  - [~] 15.1 Implement `POST/GET /api/admin/sprints`
+  - [x] 15.1 Implement `POST/GET /api/admin/sprints`
     - Create `src/app/api/admin/sprints/route.ts` using `requireAdmin()`; `POST` validates `CreateSprintInput` with Zod and delegates to `SprintRunner.create`, returning 409 on concurrent running sprint, 400 on env/validation errors; `GET` returns a paginated list sorted by `createdAt` desc with finding/fix counts
     - _Requirements: 1.1, 9.1, 9.2, 9.8, 9.9, 12.5, 12.6_
-  - [~] 15.2 Implement `GET/PATCH /api/admin/sprints/[id]`
+  - [x] 15.2 Implement `GET/PATCH /api/admin/sprints/[id]`
     - Create `src/app/api/admin/sprints/[id]/route.ts`; `GET` returns `SprintStatusView` (sprint + counts + last-N log entries); `PATCH` accepts `{ action: "start" | "abort", reason? }` and routes to `SprintRunner.start` or `SprintRunner.abort`
     - _Requirements: 1.3, 1.4, 1.7, 9.3, 9.8_
-  - [~] 15.3 Implement `POST /api/admin/sprints/[id]/action`
+  - [x] 15.3 Implement `POST /api/admin/sprints/[id]/action`
     - Create `src/app/api/admin/sprints/[id]/action/route.ts` with actions `merge_to_main` (fast-forward or squash merge of a fix's sprint branch into `mainline`) and `revert_commit` (create a revert commit on the sprint branch; set fix status to `reverted`)
     - _Requirements: 9.5, 9.6, 9.7_
-  - [~] 15.4 Implement `GET /api/admin/sprints/[id]/artifacts`
+  - [x] 15.4 Implement `GET /api/admin/sprints/[id]/artifacts`
     - Create `src/app/api/admin/sprints/[id]/artifacts/route.ts` returning rendered markdown of each shared doc, plus a `?download=actionLog` query that streams all `sprintActionLog` entries for the sprint as JSON (Requirement 13.5)
     - _Requirements: 9.3, 13.5_
   - [ ]* 15.5 Write unit tests for admin API routes
@@ -334,19 +334,19 @@ Language: TypeScript (derived from the design document, which uses TypeScript th
 <!-- Phase 12: Admin UI (component tree matches design) -->
 
 - [ ] 16. Admin UI
-  - [~] 16.1 Create the admin sprints layout with requireAdmin guard
+  - [x] 16.1 Create the admin sprints layout with requireAdmin guard
     - Create `src/app/admin/sprints/layout.tsx` that calls `requireAdmin()` at the layout level; non-admin requests redirect or render 403 via `ApiErrorResponse`
     - _Requirements: 9.8, 9.9_
-  - [~] 16.2 Create the sprint list page
+  - [x] 16.2 Create the sprint list page
     - Create `src/app/admin/sprints/page.tsx` showing paginated sprints with status, duration, selected roles, finding counts by severity, and fix-proposal counts by status
     - _Requirements: 9.1_
-  - [~] 16.3 Create the sprint creation form
+  - [x] 16.3 Create the sprint creation form
     - Create `src/app/admin/sprints/new/page.tsx` (client component) with role multiselect, persona multiselect, duration input (5..240), and goals textarea; submits to `POST /api/admin/sprints`
     - _Requirements: 9.2_
-  - [~] 16.4 Create the sprint detail shell with tabs
+  - [x] 16.4 Create the sprint detail shell with tabs
     - Create `src/app/admin/sprints/[id]/page.tsx` wrapping the six tab components; use `useSWR` with `refreshInterval: 5000` while status is `running` or `closing`, switch to static fetch on `completed`/`aborted`
     - _Requirements: 9.3, 9.4_
-  - [~] 16.5 Create the six tab components
+  - [x] 16.5 Create the six tab components
     - Create `overview-tab.tsx` (metadata, live status, elapsed time), `workspace-tab.tsx` (renders each shared doc as markdown), `findings-tab.tsx` (filterable list with severity chips), `fix-proposals-tab.tsx` (list + per-fix drawer with diff, "Merge to Main" and "Revert Commit" buttons), `retrospective-tab.tsx` (rendered retrospective.md), `action-log-tab.tsx` (`sprintActionLog` entries with JSON export link)
     - _Requirements: 9.3, 9.5, 9.6, 9.7, 13.5_
   - [ ]* 16.6 Write component tests for the admin UI
@@ -356,7 +356,7 @@ Language: TypeScript (derived from the design document, which uses TypeScript th
 <!-- Phase 13: End-to-end integration (gated) -->
 
 - [ ] 17. End-to-end integration tests (gated by `SPRINT_INTEGRATION=true`)
-  - [~] 17.1 Add the integration test harness
+  - [x] 17.1 Add the integration test harness
     - Create `src/lib/sprint/__tests__/integration/harness.ts` that spawns the test instance, seeds a temp Mongo DB, mocks the LLM client with deterministic tool-call scripts, and tears everything down on completion
     - Gate every test file in this task behind `SPRINT_INTEGRATION === "true"` using `describe.skipIf(!process.env.SPRINT_INTEGRATION)`
     - _Requirements: 12.1, 12.2, 12.3_
@@ -377,7 +377,7 @@ Language: TypeScript (derived from the design document, which uses TypeScript th
     - Submit a fix touching >10 files; assert `.kiro/specs/<kebab>/` is created with all four files, `fp.status === "promoted_to_spec"`, and no commit was made
     - _Requirements: 11.1, 11.3, 11.4, 11.5_
 
-- [~] 18. Final checkpoint — Ensure all tests pass
+- [x] 18. Final checkpoint — Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes
