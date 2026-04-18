@@ -109,7 +109,7 @@ Language: TypeScript (derived from the design document, which uses TypeScript th
 <!-- Phase 3: Workspace writer (append-only shared markdown + file mutex) -->
 
 - [ ] 4. Shared markdown workspace
-  - [~] 4.1 Implement the workspace writer with a per-file mutex
+  - [x] 4.1 Implement the workspace writer with a per-file mutex
     - Create `src/lib/sprint/workspace.ts` exposing `init(sprintId)`, `read(path)`, `append(path, block)`, and `createTicket(ticketId, body)`; use `async-mutex` (add dep) keyed by absolute path to serialize appends; enforce the 2 MB cap and rotate to `<filename>.part<N>.md` when exceeded; compute and store a running SHA-256 hash per doc; write a matching `log.md` entry on every successful append; reject any non-append mutation under the workspace root
     - Initializes `.kiro/sprints/<sprint_id>/` with `plan.md`, `log.md`, `findings.md`, `retrospective.md` containing sprint metadata headers
     - _Requirements: 1.2, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9_
@@ -129,12 +129,12 @@ Language: TypeScript (derived from the design document, which uses TypeScript th
 <!-- Phase 4: LLM client -->
 
 - [ ] 5. LLM client
-  - [~] 5.1 Implement the provider-agnostic LLM client
+  - [x] 5.1 Implement the provider-agnostic LLM client
     - Create `src/lib/sprint/llm/client.ts` with `LlmClient` interface and implementations for `bedrock`, `openai`, and `anthropic` selected by `SPRINT_LLM_PROVIDER`; read model id from `SPRINT_LLM_MODEL`; read credentials from provider-specific env vars and never log them
     - Enforce a 120 s per-request timeout and a per-sprint token budget read from `SPRINT_TOKEN_BUDGET` (exposed via the `LlmUsage` tracker returned alongside responses)
     - Implement retry with exponential backoff of 1/4/16 s on retryable errors (up to 3 attempts), return `LLM_ERROR` on final/non-retryable failures, append failures to `log.md`
     - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6_
-  - [~] 5.2 Implement the structured-response parser
+  - [x] 5.2 Implement the structured-response parser
     - Create `src/lib/sprint/llm/parser.ts` with a Zod schema for `{ tool: string, parameters: unknown }` and a `parseAgentResponse(raw)` function returning `ToolCall` or `{ kind: "noop" }`; malformed JSON yields a corrective-prompt payload
     - _Requirements: 2.3, 13.2_
   - [ ]* 5.3 Write unit tests for retry/backoff and parser
