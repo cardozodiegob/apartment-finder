@@ -254,8 +254,11 @@ export async function uploadPhotos(
       hashes.push(hash);
     }
 
-    // Update listing with new photos
-    listing.photos.push(...urls);
+    // Update listing with new photos (append as photo objects)
+    const startOrder = Array.isArray(listing.photos) ? listing.photos.length : 0;
+    const newPhotos = urls.map((url, i) => ({ url, order: startOrder + i }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (listing.photos as any).push(...newPhotos);
     listing.photoHashes.push(...hashes);
     await listing.save();
 

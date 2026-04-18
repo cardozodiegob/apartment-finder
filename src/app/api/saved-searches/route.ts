@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     await dbConnect();
 
     const body = await request.json();
-    const { name, filters } = body;
+    const { name, filters, emailAlertsEnabled } = body;
 
     if (!name || typeof name !== "string" || name.trim().length === 0) {
       throw new ApiErrorResponse("VALIDATION_ERROR", "Name is required", 400);
@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
       userId: user.mongoId,
       name: name.trim(),
       filters,
+      emailAlertsEnabled: Boolean(emailAlertsEnabled),
     });
 
     return Response.json({ savedSearch }, { status: 201 });

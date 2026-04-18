@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import StoreProvider from "@/components/providers/StoreProvider";
+import ThemeBootstrap from "@/components/providers/ThemeBootstrap";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/Footer";
 import CookieConsentBanner from "@/components/privacy/CookieConsentBanner";
@@ -34,6 +35,9 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} suppressHydrationWarning>
+      <head>
+        <ThemeBootstrap />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >

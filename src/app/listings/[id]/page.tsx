@@ -4,6 +4,16 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { type PhotoValue } from "@/lib/listings/photoUrl";
+import PosterCard from "@/components/listings/PosterCard";
+import ListingActionIcons from "@/components/listings/ListingActionIcons";
+import ListingFacts from "@/components/listings/ListingFacts";
+import PriceBreakdown from "@/components/listings/PriceBreakdown";
+import PhotoGallery from "@/components/listings/PhotoGallery";
+import SimilarListings from "@/components/listings/SimilarListings";
+import NearbyPOIList from "@/components/listings/NearbyPOIList";
+import { recordView } from "@/lib/listings/recentlyViewed";
+import type { Amenity } from "@/lib/constants/amenities";
 
 const ListingDetailMap = dynamic(() => import("@/components/listings/ListingDetailMap"), { ssr: false });
 
@@ -24,11 +34,37 @@ interface ListingData {
   monthlyRent: number;
   currency: string;
   availableDate: string;
-  photos: string[];
+  photos: PhotoValue[];
   tags: string[];
   isSharedAccommodation: boolean;
   currentOccupants?: number;
   availableRooms?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  beds?: number;
+  floorArea?: number;
+  floor?: number;
+  totalFloors?: number;
+  yearBuilt?: number;
+  heatingType?: string;
+  energyRating?: string;
+  leaseType?: string;
+  minStayMonths?: number;
+  maxStayMonths?: number;
+  deposit?: number;
+  billsEstimate?: number;
+  utilitiesIncluded?: boolean;
+  amenities?: Amenity[];
+  houseRules?: string[];
+  isFurnished?: boolean;
+  isPetFriendly?: boolean;
+  hasParking?: boolean;
+  hasBalcony?: boolean;
+  floorPlanUrl?: string;
+  virtualTourUrl?: string;
+  nearbyTransit?: { kind: string; name: string; distanceMeters: number }[];
+  nearbyAmenities?: { kind: string; name: string; distanceMeters: number }[];
+  verificationTier?: "none" | "docs" | "photo_tour" | "in_person";
   status: string;
   posterId: string;
   createdAt: string;
@@ -37,14 +73,30 @@ interface ListingData {
 
 const PLACEHOLDER_IMG = "https://placehold.co/400x300/e2e8f0/64748b?text=No+Photo";
 
+interface PosterCardData {
+  id: string;
+  fullName: string;
+  firstName: string;
+  photoUrl: string | null;
+  trustScore: number;
+  badges: Array<"idVerified" | "emailVerified" | "phoneVerified">;
+  languages: string[];
+  memberSince: string;
+  completedTransactions: number;
+  responseRate: number | null;
+  responseTimeHours: number | null;
+}
+
 export default function ListingDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [listing, setListing] = useState<ListingData | null>(null);
+  const [poster, setPoster] = useState<PosterCardData | null>(null);
+  const [favorited, setFavorited] = useState(false);
   const [error, setError] = useState("");
-  const [activePhoto, setActivePhoto] = useState(0);
   const [viewingDate, setViewingDate] = useState("");
   const [viewingMsg, setViewingMsg] = useState("");
   const [viewingLoading, setViewingLoading] = useState(false);
+  const [canEdit, setCanEdit] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -53,9 +105,27 @@ export default function ListingDetailPage() {
         const data = await res.json();
         if (!res.ok) { setError(data.message || "Listing not found"); return; }
         setListing(data.listing);
+        setPoster(data.poster ?? null);
+        setFavorited(Boolean(data.isFavorited));
+
+        // Gate the edit button — only owner or admin
+        try {
+          const sessionRes = await fetch("/api/auth/session");
+          if (sessionRes.ok) {
+            const sessionData = await sessionRes.json();
+            const me = sessionData.user;
+            if (me && (me.role === "admin" || me.mongoId === data.listing.posterId)) {
+              setCanEdit(true);
+            }
+          }
+        } catch { /* non-auth users don't see the button */ }
       } catch { setError("Failed to load listing"); }
     }
     if (id) load();
+  }, [id]);
+
+  useEffect(() => {
+    if (id) recordView(String(id));
   }, [id]);
 
   if (error) {
@@ -78,34 +148,47 @@ export default function ListingDetailPage() {
     );
   }
 
-  const photos = listing.photos.length > 0 ? listing.photos : [PLACEHOLDER_IMG];
+  const photos = photoUrls(listing.photos).length > 0 ? photoUrls(listing.photos) : [PLACEHOLDER_IMG];
 
   return (
     <div className="min-h-screen bg-[var(--background)] py-8 px-4">
       <div className="max-w-4xl mx-auto">
+        {/* Breadcrumbs */}
+        <nav aria-label="Breadcrumb" className="mb-4">
+          <ol className="flex items-center gap-1.5 text-sm text-[var(--text-muted)] flex-wrap">
+            <li>
+              <Link href="/" className="hover:text-[var(--text-primary)] hover:underline">Home</Link>
+            </li>
+            <li aria-hidden="true">/</li>
+            <li>
+              <Link href={`/search?country=${encodeURIComponent(listing.address.country)}`} className="hover:text-[var(--text-primary)] hover:underline">
+                {listing.address.country}
+              </Link>
+            </li>
+            <li aria-hidden="true">/</li>
+            <li>
+              <Link
+                href={`/search?country=${encodeURIComponent(listing.address.country)}&city=${encodeURIComponent(listing.address.city)}`}
+                className="hover:text-[var(--text-primary)] hover:underline"
+              >
+                {listing.address.city}
+              </Link>
+            </li>
+            <li aria-hidden="true">/</li>
+            <li className="text-[var(--text-primary)] truncate" aria-current="page">{listing.title}</li>
+          </ol>
+        </nav>
+
         {/* Photo gallery */}
-        <div className="relative aspect-video rounded-2xl overflow-hidden mb-6 bg-[var(--surface)]">
-          <img
-            src={photos[activePhoto]}
-            alt={listing.title}
-            className="w-full h-full object-cover"
+        <div className="relative mb-6">
+          <PhotoGallery
+            photos={listing.photos}
+            title={listing.title}
+            floorPlanUrl={listing.floorPlanUrl}
+            virtualTourUrl={listing.virtualTourUrl}
           />
-          {photos.length > 1 && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-              {photos.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setActivePhoto(i)}
-                  className={`w-2.5 h-2.5 rounded-full transition-colors ${
-                    i === activePhoto ? "bg-white" : "bg-white/50"
-                  }`}
-                  aria-label={`View photo ${i + 1}`}
-                />
-              ))}
-            </div>
-          )}
           {listing.status !== "active" && (
-            <div className="absolute top-4 left-4">
+            <div className="absolute top-4 left-4 pointer-events-none">
               <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                 listing.status === "draft" ? "bg-yellow-100 text-yellow-800" :
                 listing.status === "under_review" ? "bg-orange-100 text-orange-800" :
@@ -121,18 +204,25 @@ export default function ListingDetailPage() {
           {/* Main content */}
           <div className="lg:col-span-2 space-y-6">
             <div className="glass-card">
-              <div className="flex items-start justify-between mb-4">
-                <div>
+              <div className="flex items-start justify-between mb-4 gap-3">
+                <div className="min-w-0 flex-1">
                   <h1 className="text-2xl font-bold text-[var(--text-primary)]">{listing.title}</h1>
                   <p className="text-[var(--text-secondary)]">
                     {listing.address.city}, {listing.address.country}
                     {listing.address.neighborhood && ` · ${listing.address.neighborhood}`}
                   </p>
                 </div>
-                <Link href={`/listings/${id}/edit`}
-                  className="px-3 py-1.5 rounded-lg border border-[var(--border)] text-sm text-[var(--text-primary)] hover:bg-[var(--background-secondary)] transition-colors">
-                  Edit
-                </Link>
+                <div className="flex items-start gap-2 shrink-0">
+                  <ListingActionIcons
+                    listingId={String(id)}
+                    listingTitle={listing.title}
+                    initialFavorited={favorited}
+                  />
+                  <Link href={`/listings/${id}/edit`}
+                    className={`px-3 py-1.5 rounded-lg border border-[var(--border)] text-sm text-[var(--text-primary)] hover:bg-[var(--background-secondary)] transition-colors ${canEdit ? "" : "hidden"}`}>
+                    Edit
+                  </Link>
+                </div>
               </div>
 
               <div className="flex flex-wrap gap-2 mb-4">
@@ -178,20 +268,46 @@ export default function ListingDetailPage() {
               </div>
             )}
 
-            {/* Poster trust score placeholder */}
-            <div className="glass-card">
-              <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-3">Poster</h2>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-navy-100 dark:bg-navy-900/30 flex items-center justify-center">
-                  <span className="text-navy-600 dark:text-navy-300 font-medium text-sm">P</span>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-[var(--text-primary)]">Poster</p>
-                  <p className="text-xs text-[var(--text-muted)]">Trust score coming soon</p>
-                </div>
+            <ListingFacts
+              data={{
+                bedrooms: listing.bedrooms,
+                bathrooms: listing.bathrooms,
+                beds: listing.beds,
+                floorArea: listing.floorArea,
+                floor: listing.floor,
+                totalFloors: listing.totalFloors,
+                yearBuilt: listing.yearBuilt,
+                heatingType: listing.heatingType,
+                energyRating: listing.energyRating,
+                leaseType: listing.leaseType,
+                minStayMonths: listing.minStayMonths,
+                maxStayMonths: listing.maxStayMonths,
+                utilitiesIncluded: listing.utilitiesIncluded,
+                isFurnished: listing.isFurnished,
+                isPetFriendly: listing.isPetFriendly,
+                hasParking: listing.hasParking,
+                hasBalcony: listing.hasBalcony,
+                amenities: listing.amenities,
+                houseRules: listing.houseRules,
+              }}
+            />
+
+            {listing.nearbyTransit && listing.nearbyTransit.length > 0 && (
+              <NearbyPOIList title="Nearby transit" items={listing.nearbyTransit} />
+            )}
+            {listing.nearbyAmenities && listing.nearbyAmenities.length > 0 && (
+              <NearbyPOIList title="Nearby amenities" items={listing.nearbyAmenities} />
+            )}
+
+            {/* Poster card */}
+            {poster ? (
+              <PosterCard poster={poster} listingId={String(id)} />
+            ) : (
+              <div className="glass-card">
+                <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-3">Poster</h2>
+                <p className="text-sm text-[var(--text-muted)]">Poster information unavailable.</p>
               </div>
-              <p className="text-xs text-[var(--text-muted)] mt-3">Recent reviews will appear here.</p>
-            </div>
+            )}
           </div>
 
           {/* Sidebar */}
@@ -201,6 +317,24 @@ export default function ListingDetailPage() {
                 {listing.monthlyRent.toLocaleString()} {listing.currency}
               </p>
               <p className="text-sm text-[var(--text-muted)]">per month</p>
+              <Link
+                href="/move-in-guarantee"
+                className="mt-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-navy-100 dark:bg-navy-900/40 text-navy-700 dark:text-navy-200 text-xs font-medium hover:bg-navy-200 dark:hover:bg-navy-900/60"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2l8 4v6c0 5-3.5 9.5-8 10-4.5-.5-8-5-8-10V6l8-4z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4" />
+                </svg>
+                Move-in guaranteed
+              </Link>
+              {listing.verificationTier && listing.verificationTier !== "none" && (
+                <span className="mt-2 ml-2 inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-200 text-xs font-medium">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5-3v11a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h8l4 4z" />
+                  </svg>
+                  Verified listing
+                </span>
+              )}
               {(() => {
                 const history = listing.priceHistory;
                 if (history && history.length > 0) {
@@ -241,14 +375,23 @@ export default function ListingDetailPage() {
               </div>
             </div>
 
+            <PriceBreakdown
+              monthlyRent={listing.monthlyRent}
+              currency={listing.currency}
+              deposit={listing.deposit}
+              billsEstimate={listing.billsEstimate}
+              utilitiesIncluded={listing.utilitiesIncluded}
+            />
+
             {/* Map */}
             <div className="glass-card">
               <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-2">Location</h3>
-              <div className="aspect-square rounded-lg overflow-hidden border border-[var(--border)]">
+              <div className="rounded-lg overflow-hidden border border-[var(--border)]" style={{ minHeight: 400, height: 400 }}>
                 {listing.location?.coordinates ? (
                   <ListingDetailMap
                     lng={listing.location.coordinates[0]}
                     lat={listing.location.coordinates[1]}
+                    obscurePin
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-[var(--surface)]">
@@ -256,6 +399,9 @@ export default function ListingDetailPage() {
                   </div>
                 )}
               </div>
+              <p className="text-xs text-[var(--text-muted)] mt-2">
+                Exact location shared after booking. A 500 m area is shown for privacy.
+              </p>
             </div>
 
             {/* Request Viewing */}
@@ -311,6 +457,9 @@ export default function ListingDetailPage() {
             )}
           </div>
         </div>
+
+        {/* Similar listings */}
+        <SimilarListings listingId={String(id)} />
       </div>
     </div>
   );

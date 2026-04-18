@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Circle, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -16,7 +16,6 @@ L.Icon.Default.mergeOptions({
 function InvalidateSizeOnMount() {
   const map = useMap();
   useEffect(() => {
-    // Wait for container to be fully rendered then recalculate size
     const timer = setTimeout(() => map.invalidateSize(), 100);
     const timer2 = setTimeout(() => map.invalidateSize(), 400);
     return () => { clearTimeout(timer); clearTimeout(timer2); };
@@ -27,17 +26,36 @@ function InvalidateSizeOnMount() {
 interface ListingDetailMapProps {
   lat: number;
   lng: number;
+  /** When true, show a 500m privacy circle instead of an exact pin. */
+  obscurePin?: boolean;
 }
 
-export default function ListingDetailMap({ lat, lng }: ListingDetailMapProps) {
+export default function ListingDetailMap({
+  lat,
+  lng,
+  obscurePin = true,
+}: ListingDetailMapProps) {
   return (
-    <MapContainer center={[lat, lng]} zoom={15} style={{ height: "100%", width: "100%" }} scrollWheelZoom={false}>
+    <MapContainer
+      center={[lat, lng]}
+      zoom={obscurePin ? 14 : 15}
+      style={{ height: "100%", width: "100%" }}
+      scrollWheelZoom={false}
+    >
       <InvalidateSizeOnMount />
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
         url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
       />
-      <Marker position={[lat, lng]} />
+      {obscurePin ? (
+        <Circle
+          center={[lat, lng]}
+          radius={500}
+          pathOptions={{ color: "#3b82f6", weight: 2, fillOpacity: 0.15 }}
+        />
+      ) : (
+        <Marker position={[lat, lng]} />
+      )}
     </MapContainer>
   );
 }

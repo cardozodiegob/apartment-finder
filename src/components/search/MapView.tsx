@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, Polygon, useMapEvents, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Polygon, useMapEvents, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import "leaflet.markercluster/dist/MarkerCluster.css";
+import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import L from "leaflet";
+import "leaflet.markercluster";
 
 // Fix Leaflet default icon
 delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl;
@@ -36,13 +39,34 @@ interface MapViewProps {
   onBoundaryChange?: (boundary: number[][][] | null) => void;
 }
 
+function ClusterMarkers({ listings }: { listings: MapListing[] }) {
+  const map = useMap();
+  useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cluster = (L as any).markerClusterGroup({
+      chunkedLoading: true,
+      showCoverageOnHover: false,
+      spiderfyOnMaxZoom: true,
+      maxClusterRadius: 60,
+    });
+    for (const listing of listings) {
+      const [lng, lat] = listing.location.coordinates;
+      const m = L.marker([lat, lng]).bindPopup(
+        `<strong>${listing.title.replace(/</g, "&lt;")}</strong><br/>${listing.currency} ${listing.monthlyRent}/mo`,
+      );
+      cluster.addLayer(m);
+    }
+    map.addLayer(cluster);
+    return () => { map.removeLayer(cluster); };
+  }, [listings, map]);
+  return null;
+}
+
 function DrawingHandler({
   isDrawing,
-  points,
   onAddPoint,
 }: {
   isDrawing: boolean;
-  points: [number, number][];
   onAddPoint: (latlng: [number, number]) => void;
 }) {
   const map = useMap();
@@ -113,21 +137,14 @@ export default function MapView({ listings, onBoundaryChange }: MapViewProps) {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
           url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
         />
-        <DrawingHandler isDrawing={isDrawing} points={drawPoints} onAddPoint={handleAddPoint} />
+        <DrawingHandler isDrawing={isDrawing} onAddPoint={handleAddPoint} />
         {drawPoints.length >= 2 && (
           <Polygon
             positions={drawPoints}
             pathOptions={{ color: "#3b82f6", weight: 2, fillOpacity: 0.15 }}
           />
         )}
-        {listings.map((listing) => (
-          <Marker key={listing._id} position={[listing.location.coordinates[1], listing.location.coordinates[0]]}>
-            <Popup>
-              <strong>{listing.title}</strong><br />
-              {listing.currency} {listing.monthlyRent}/mo
-            </Popup>
-          </Marker>
-        ))}
+        <ClusterMarkers listings={listings} />
       </MapContainer>
 
       {onBoundaryChange && (

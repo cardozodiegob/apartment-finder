@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useToast } from "@/lib/hooks/useToast";
 import { ToastContainer } from "@/components/ui/Toast";
 import { SkeletonCard } from "@/components/ui/Skeleton";
+import { firstPhotoUrl, type PhotoValue } from "@/lib/listings/photoUrl";
 
 interface ListingItem {
   _id: string;
@@ -13,7 +14,7 @@ interface ListingItem {
   monthlyRent: number;
   currency: string;
   status: string;
-  photos: string[];
+  photos: PhotoValue[];
   address: { city: string; country: string };
   createdAt: string;
 }
@@ -42,12 +43,12 @@ export default function DashboardListingsPage() {
       try {
         const sessionRes = await fetch("/api/auth/session");
         const sessionData = await sessionRes.json();
-        if (!sessionRes.ok || !sessionData.session) {
+        if (!sessionRes.ok || !sessionData.user) {
           setError("Please log in to view your listings");
           setIsLoading(false);
           return;
         }
-        const userId = sessionData.session.user.mongoId;
+        const userId = sessionData.user.mongoId;
         const statusParam = filter !== "all" ? `?status=${filter}` : "";
         const res = await fetch(`/api/listings/user/${userId}${statusParam}`);
         const data = await res.json();
@@ -136,7 +137,7 @@ export default function DashboardListingsPage() {
                 <Link href={`/listings/${listing._id}`} className="block">
                   <div className="aspect-video rounded-lg overflow-hidden mb-3 bg-[var(--surface)]">
                     <img
-                      src={listing.photos[0] || PLACEHOLDER_IMG}
+                      src={firstPhotoUrl(listing.photos) || PLACEHOLDER_IMG}
                       alt={listing.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                       loading="lazy"

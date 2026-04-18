@@ -29,6 +29,9 @@ export default function MessagesPage() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [translations, setTranslations] = useState<Record<string, string>>({});
+  const [translating, setTranslating] = useState<Record<string, boolean>>({});
+  const [flagged, setFlagged] = useState<Record<string, boolean>>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Fetch session to get current user id
@@ -153,7 +156,9 @@ export default function MessagesPage() {
         <div className="max-w-3xl mx-auto">
           <h1 className="text-3xl font-bold text-[var(--text-primary)] mb-8">Messages</h1>
           <div className="glass-card text-center py-12">
-            <div className="text-4xl mb-4">💬</div>
+            <svg className="w-12 h-12 mx-auto text-[var(--text-muted)] mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8-1.64 0-3.182-.39-4.51-1.08L3 21l1.25-4.32C3.45 15.52 3 14.3 3 13c0-4.418 4.03-8 9-8s9 3.582 9 7z" />
+            </svg>
             <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-2">No messages yet</h2>
             <p className="text-[var(--text-muted)] mb-4">
               Start a conversation by contacting a poster from a listing page.
@@ -241,6 +246,40 @@ export default function MessagesPage() {
                   ) : (
                     messages.map((msg) => {
                       const isOwn = msg.senderId === currentUserId;
+                      const translated = translations[msg._id];
+
+                      async function translate() {
+                        const targetLanguage = (typeof navigator !== "undefined" && navigator.language) || "en";
+                        const lang = targetLanguage.split("-")[0];
+                        setTranslating((t) => ({ ...t, [msg._id]: true }));
+                        try {
+                          const res = await fetch("/api/messages/translate", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ messageId: msg._id, targetLanguage: lang }),
+                          });
+                          if (res.ok) {
+                            const data = await res.json();
+                            setTranslations((tr) => ({ ...tr, [msg._id]: data.translatedBody }));
+                          }
+                        } finally {
+                          setTranslating((t) => ({ ...t, [msg._id]: false }));
+                        }
+                      }
+
+                      async function flagScam() {
+                        await fetch("/api/reports", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            targetType: "message",
+                            targetId: msg._id,
+                            reason: "Potential scam reported from messaging UI",
+                          }),
+                        });
+                        setFlagged((f) => ({ ...f, [msg._id]: true }));
+                      }
+
                       return (
                         <div key={msg._id} className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
                           <div
@@ -250,10 +289,37 @@ export default function MessagesPage() {
                                 : "bg-[var(--background-secondary)] text-[var(--text-primary)]"
                             }`}
                           >
-                            <p>{msg.body}</p>
-                            <p className={`text-xs mt-1 ${isOwn ? "text-white/70" : "text-[var(--text-muted)]"}`}>
-                              {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                            </p>
+                            <p className="whitespace-pre-wrap">{msg.body}</p>
+                            {translated && (
+                              <p className={`text-xs mt-1 italic ${isOwn ? "text-white/80" : "text-[var(--text-secondary)]"}`}>
+                                {translated}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-2 mt-1">
+                              <p className={`text-xs ${isOwn ? "text-white/70" : "text-[var(--text-muted)]"}`}>
+                                {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              </p>
+                              {!isOwn && (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={translate}
+                                    disabled={translating[msg._id]}
+                                    className="text-xs underline text-[var(--text-muted)] hover:text-[var(--text-primary)] disabled:opacity-50"
+                                  >
+                                    {translating[msg._id] ? "…" : translated ? "Re-translate" : "Translate"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={flagScam}
+                                    disabled={!!flagged[msg._id]}
+                                    className="text-xs underline text-red-400 hover:text-red-500 disabled:opacity-50"
+                                  >
+                                    {flagged[msg._id] ? "Reported" : "Mark as scam"}
+                                  </button>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );
@@ -264,12 +330,18 @@ export default function MessagesPage() {
 
                 {/* Send form */}
                 <form onSubmit={handleSend} className="flex gap-2 pt-3 border-t border-[var(--border)]">
-                  <input
-                    type="text"
+                  <textarea
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="Type a message..."
-                    className="flex-1 px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-navy-500"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        if (!sending && newMessage.trim()) handleSend(e as unknown as React.FormEvent);
+                      }
+                    }}
+                    placeholder="Type a message… (Enter to send, Shift+Enter for new line)"
+                    rows={1}
+                    className="flex-1 px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--background)] text-[var(--text-primary)] text-sm focus:outline-none focus:ring-2 focus:ring-navy-500 resize-none"
                     disabled={sending}
                   />
                   <button

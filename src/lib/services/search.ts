@@ -9,10 +9,15 @@ export interface SearchParams {
   propertyType?: "apartment" | "room" | "house";
   priceRange?: { min: number; max: number };
   bedrooms?: number;
+  bathrooms?: number;
+  availableRooms?: number;
   availableAfter?: Date;
   tags?: string[];
+  amenities?: string[];
+  minEnergyRating?: "A" | "B" | "C" | "D" | "E" | "F" | "G";
   purpose?: "rent" | "share" | "sublet";
   isSharedAccommodation?: boolean;
+  /** Tri-state: true = must be furnished, false = must be unfurnished, undefined = either */
   isFurnished?: boolean;
   isPetFriendly?: boolean;
   hasParking?: boolean;
@@ -22,6 +27,9 @@ export interface SearchParams {
   city?: string;
   country?: string;
   neighborhood?: string;
+  verifiedOnly?: boolean;
+  verifiedPostersOnly?: boolean;
+  sort?: "newest" | "price_asc" | "price_desc" | "available_soonest" | "relevance";
   page: number;
   limit: number;
   cursor?: string;
@@ -49,8 +57,12 @@ export const searchParamsSchema = z.object({
   priceMin: z.coerce.number().min(0).optional(),
   priceMax: z.coerce.number().min(0).optional(),
   bedrooms: z.coerce.number().int().min(0).optional(),
+  bathrooms: z.coerce.number().int().min(0).optional(),
+  availableRooms: z.coerce.number().int().min(0).optional(),
   availableAfter: z.coerce.date().optional(),
   tags: z.union([z.string(), z.array(z.string())]).optional(),
+  amenities: z.union([z.string(), z.array(z.string())]).optional(),
+  minEnergyRating: z.enum(["A", "B", "C", "D", "E", "F", "G"]).optional(),
   purpose: z.enum(["rent", "share", "sublet"]).optional(),
   isSharedAccommodation: z.coerce.boolean().optional(),
   isFurnished: z.coerce.boolean().optional(),
@@ -62,6 +74,8 @@ export const searchParamsSchema = z.object({
   city: z.string().optional(),
   country: z.string().optional(),
   neighborhood: z.string().optional(),
+  verifiedOnly: z.coerce.boolean().optional(),
+  sort: z.enum(["newest", "price_asc", "price_desc", "available_soonest", "relevance"]).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   cursor: z.string().optional(),
@@ -83,8 +97,12 @@ export function serializeFilters(params: Partial<SearchParams>): URLSearchParams
     sp.set("priceMax", String(params.priceRange.max));
   }
   if (params.bedrooms !== undefined && params.bedrooms !== null) sp.set("bedrooms", String(params.bedrooms));
+  if (params.bathrooms !== undefined && params.bathrooms !== null) sp.set("bathrooms", String(params.bathrooms));
+  if (params.availableRooms !== undefined && params.availableRooms !== null) sp.set("availableRooms", String(params.availableRooms));
   if (params.availableAfter) sp.set("availableAfter", params.availableAfter.toISOString());
   if (params.tags && params.tags.length > 0) sp.set("tags", params.tags.join(","));
+  if (params.amenities && params.amenities.length > 0) sp.set("amenities", params.amenities.join(","));
+  if (params.minEnergyRating) sp.set("minEnergyRating", params.minEnergyRating);
   if (params.purpose) sp.set("purpose", params.purpose);
   if (params.isSharedAccommodation) sp.set("isSharedAccommodation", "true");
   if (params.isFurnished) sp.set("isFurnished", "true");
@@ -96,6 +114,7 @@ export function serializeFilters(params: Partial<SearchParams>): URLSearchParams
   if (params.city) sp.set("city", params.city);
   if (params.country) sp.set("country", params.country);
   if (params.neighborhood) sp.set("neighborhood", params.neighborhood);
+  if (params.verifiedOnly) sp.set("verifiedOnly", "true");
   if (params.page && params.page > 1) sp.set("page", String(params.page));
   if (params.limit && params.limit !== 20) sp.set("limit", String(params.limit));
   return sp;
@@ -116,10 +135,18 @@ export function deserializeFilters(sp: URLSearchParams): Partial<SearchParams> {
   }
   const bedrooms = sp.get("bedrooms");
   if (bedrooms !== null) params.bedrooms = Number(bedrooms);
+  const bathrooms = sp.get("bathrooms");
+  if (bathrooms !== null) params.bathrooms = Number(bathrooms);
+  const availableRooms = sp.get("availableRooms");
+  if (availableRooms !== null) params.availableRooms = Number(availableRooms);
   const availableAfter = sp.get("availableAfter");
   if (availableAfter) params.availableAfter = new Date(availableAfter);
   const tags = sp.get("tags");
   if (tags) params.tags = tags.split(",");
+  const amenities = sp.get("amenities");
+  if (amenities) params.amenities = amenities.split(",");
+  const minEnergyRating = sp.get("minEnergyRating");
+  if (minEnergyRating) params.minEnergyRating = minEnergyRating as SearchParams["minEnergyRating"];
   const purpose = sp.get("purpose");
   if (purpose && ["rent", "share", "sublet"].includes(purpose)) {
     params.purpose = purpose as SearchParams["purpose"];
@@ -144,6 +171,8 @@ export function deserializeFilters(sp: URLSearchParams): Partial<SearchParams> {
   if (country) params.country = country;
   const neighborhood = sp.get("neighborhood");
   if (neighborhood) params.neighborhood = neighborhood;
+  const verifiedOnly = sp.get("verifiedOnly");
+  if (verifiedOnly === "true") params.verifiedOnly = true;
   const page = sp.get("page");
   if (page) params.page = Number(page);
   const limit = sp.get("limit");
@@ -174,7 +203,13 @@ function buildQuery(params: SearchParams): Record<string, unknown> {
     };
   }
   if (params.bedrooms !== undefined && params.bedrooms !== null) {
-    query.availableRooms = { $gte: params.bedrooms };
+    query.bedrooms = { $gte: params.bedrooms };
+  }
+  if (params.bathrooms !== undefined && params.bathrooms !== null) {
+    query.bathrooms = { $gte: params.bathrooms };
+  }
+  if (params.availableRooms !== undefined && params.availableRooms !== null) {
+    query.availableRooms = { $gte: params.availableRooms };
   }
   if (params.availableAfter) {
     query.availableDate = { $gte: params.availableAfter };
@@ -182,14 +217,26 @@ function buildQuery(params: SearchParams): Record<string, unknown> {
   if (params.tags && params.tags.length > 0) {
     query.tags = { $all: params.tags };
   }
+  if (params.amenities && params.amenities.length > 0) {
+    query.amenities = { $all: params.amenities };
+  }
+  if (params.minEnergyRating) {
+    const order = ["A", "B", "C", "D", "E", "F", "G"];
+    const idx = order.indexOf(params.minEnergyRating);
+    const allowed = order.slice(0, idx + 1);
+    query.energyRating = { $in: allowed };
+  }
+  if (params.verifiedOnly) {
+    query.verificationTier = { $in: ["docs", "photo_tour", "in_person"] };
+  }
   if (params.purpose) {
     query.purpose = params.purpose;
   }
   if (params.isSharedAccommodation) {
     query.isSharedAccommodation = true;
   }
-  if (params.isFurnished) {
-    query.isFurnished = true;
+  if (params.isFurnished !== undefined) {
+    query.isFurnished = params.isFurnished;
   }
   if (params.isPetFriendly) {
     query.isPetFriendly = true;
@@ -242,10 +289,25 @@ export async function search(params: SearchParams): Promise<SearchResult> {
 
   const skip = useCursor ? 0 : (page - 1) * limit;
 
+  // Determine sort
+  const sort = params.sort ?? (params.query ? "relevance" : "newest");
+  let sortSpec: Record<string, 1 | -1 | { $meta: "textScore" }>;
+  switch (sort) {
+    case "price_asc": sortSpec = { monthlyRent: 1, _id: -1 }; break;
+    case "price_desc": sortSpec = { monthlyRent: -1, _id: -1 }; break;
+    case "available_soonest": sortSpec = { availableDate: 1, _id: -1 }; break;
+    case "relevance":
+      sortSpec = params.query ? { score: { $meta: "textScore" } } : { createdAt: -1 };
+      break;
+    case "newest":
+    default:
+      sortSpec = { createdAt: -1 };
+  }
+
   try {
     const [listings, totalCount] = await Promise.all([
       Listing.find(query)
-        .sort(params.query ? { score: { $meta: "textScore" } } : { createdAt: -1 })
+        .sort(sortSpec)
         .skip(skip)
         .limit(limit)
         .maxTimeMS(QUERY_TIMEOUT_MS),

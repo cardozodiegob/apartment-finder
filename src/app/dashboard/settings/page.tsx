@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/lib/hooks/useToast";
 import { ToastContainer } from "@/components/ui/Toast";
+import { useTheme } from "@/lib/context/ThemeContext";
 
 interface ProfileData {
   _id: string;
@@ -17,6 +18,7 @@ interface ProfileData {
   profileCompleteness: number;
   profileCompleted: boolean;
   idVerified: boolean;
+  languagesSpoken: string[];
 }
 
 const REQUIRED_FIELDS: { key: keyof ProfileData; label: string }[] = [
@@ -55,6 +57,7 @@ export default function SettingsPage() {
     _id: "", fullName: "", bio: "", phone: "", dateOfBirth: "",
     nationality: "", idType: "", idNumber: "", profilePhoto: "",
     profileCompleteness: 0, profileCompleted: false, idVerified: false,
+    languagesSpoken: [],
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -63,7 +66,8 @@ export default function SettingsPage() {
   const { toasts, toast, dismissToast } = useToast();
 
   // Preferences state
-  const [darkMode, setDarkMode] = useState(false);
+  const { resolvedTheme, toggleTheme } = useTheme();
+  const darkMode = resolvedTheme === "dark";
   const [locale, setLocale] = useState("en");
   const [prefCurrency, setPrefCurrency] = useState("EUR");
   const [notifPrefs, setNotifPrefs] = useState<NotifPrefs>({
@@ -73,7 +77,6 @@ export default function SettingsPage() {
   useEffect(() => {
     // Load preferences from client storage
     if (typeof window !== "undefined") {
-      setDarkMode(document.documentElement.classList.contains("dark"));
       setPrefCurrency(localStorage.getItem("preferredCurrency") || "EUR");
       const cookieLocale = document.cookie.split("; ").find((c) => c.startsWith("locale="))?.split("=")[1];
       if (cookieLocale) setLocale(cookieLocale);
@@ -103,6 +106,7 @@ export default function SettingsPage() {
             profileCompleteness: u.profileCompleteness || 0,
             profileCompleted: u.profileCompleted || false,
             idVerified: u.idVerified || false,
+            languagesSpoken: u.languagesSpoken || [],
           });
         }
       })
@@ -129,6 +133,7 @@ export default function SettingsPage() {
           nationality: profile.nationality || undefined,
           idType: profile.idType || undefined,
           idNumber: profile.idNumber || undefined,
+          languagesSpoken: profile.languagesSpoken,
         }),
       });
       if (res.ok) {
@@ -170,11 +175,8 @@ export default function SettingsPage() {
   }
 
   function handleThemeToggle() {
-    const next = !darkMode;
-    setDarkMode(next);
-    document.documentElement.classList.toggle("dark", next);
-    localStorage.setItem("theme", next ? "dark" : "light");
-    toast(`Theme: ${next ? "dark" : "light"}`, "success");
+    toggleTheme();
+    toast(`Theme: ${darkMode ? "light" : "dark"}`, "success");
   }
 
   function handleLocaleChange(newLocale: string) {
@@ -244,8 +246,22 @@ export default function SettingsPage() {
               Missing: {missingFields.map((f) => f.label).join(", ")}
             </p>
           )}
-          {profile.idVerified && (
-            <p className="text-xs text-green-600 dark:text-green-400 mt-2">✓ Identity verified by admin</p>
+          {profile.idVerified ? (
+            <p className="text-xs text-green-600 dark:text-green-400 mt-2">✓ Identity verified</p>
+          ) : (
+            <button
+              onClick={async () => {
+                try {
+                  const res = await fetch("/api/kyc/start", { method: "POST" });
+                  if (!res.ok) return;
+                  const data = await res.json();
+                  if (data.session?.url) window.location.href = data.session.url;
+                } catch { /* ignore */ }
+              }}
+              className="mt-2 text-xs font-medium px-3 py-1 rounded-lg bg-navy-500 text-white hover:bg-navy-600"
+            >
+              Verify identity
+            </button>
           )}
         </div>
 
@@ -310,6 +326,32 @@ export default function SettingsPage() {
               <div>
                 <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">ID Number *</label>
                 <input type="text" value={profile.idNumber} onChange={(e) => setProfile({ ...profile, idNumber: e.target.value })} className={inputCls} />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1">Languages spoken</label>
+              <div className="flex flex-wrap gap-2">
+                {LANGUAGES.map((l) => {
+                  const checked = profile.languagesSpoken.includes(l.code);
+                  return (
+                    <label key={l.code} className={`px-3 py-1.5 rounded-full text-xs cursor-pointer border ${checked ? "bg-navy-500 text-white border-navy-500" : "bg-[var(--background-secondary)] text-[var(--text-primary)] border-[var(--border)]"}`}>
+                      <input
+                        type="checkbox"
+                        className="sr-only"
+                        checked={checked}
+                        onChange={(e) =>
+                          setProfile({
+                            ...profile,
+                            languagesSpoken: e.target.checked
+                              ? [...profile.languagesSpoken, l.code]
+                              : profile.languagesSpoken.filter((x) => x !== l.code),
+                          })
+                        }
+                      />
+                      {l.label}
+                    </label>
+                  );
+                })}
               </div>
             </div>
             <button onClick={handleSave} disabled={saving}

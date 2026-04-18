@@ -95,6 +95,22 @@ export default function NewListingPage() {
     isSharedAccommodation: false,
     currentOccupants: 0,
     availableRooms: 0,
+    bedrooms: 0,
+    bathrooms: 0,
+    beds: 0,
+    deposit: 0,
+    billsEstimate: 0,
+    utilitiesIncluded: false,
+    minStayMonths: 0,
+    maxStayMonths: 0,
+    leaseType: "open_ended" as "open_ended" | "fixed_term" | "student_semester" | "short_term",
+    heatingType: "" as "" | "central" | "gas" | "electric" | "district" | "heatPump" | "woodStove" | "none",
+    energyRating: "" as "" | "A" | "B" | "C" | "D" | "E" | "F" | "G",
+    yearBuilt: 0,
+    houseRules: [] as string[],
+    amenities: [] as string[],
+    floorPlanUrl: "",
+    virtualTourUrl: "",
     isFurnished: false,
     isPetFriendly: false,
     hasParking: false,
@@ -257,7 +273,7 @@ export default function NewListingPage() {
       .catch(() => { /* ignore reverse geocode errors */ });
   }, []);
 
-  async function handleSubmit() {
+  async function handleSubmit(opts: { draft?: boolean } = {}) {
     setServerError("");
     setIsLoading(true);
 
@@ -279,6 +295,22 @@ export default function NewListingPage() {
       floorArea: form.floorArea > 0 ? form.floorArea : undefined,
       floor: form.floor > 0 ? form.floor : undefined,
       totalFloors: form.totalFloors > 0 ? form.totalFloors : undefined,
+      bedrooms: form.bedrooms > 0 ? form.bedrooms : undefined,
+      bathrooms: form.bathrooms > 0 ? form.bathrooms : undefined,
+      beds: form.beds > 0 ? form.beds : undefined,
+      deposit: form.deposit > 0 ? form.deposit : undefined,
+      billsEstimate: form.billsEstimate > 0 ? form.billsEstimate : undefined,
+      utilitiesIncluded: form.utilitiesIncluded || undefined,
+      minStayMonths: form.minStayMonths > 0 ? form.minStayMonths : undefined,
+      maxStayMonths: form.maxStayMonths > 0 ? form.maxStayMonths : undefined,
+      leaseType: form.leaseType,
+      heatingType: form.heatingType || undefined,
+      energyRating: form.energyRating || undefined,
+      yearBuilt: form.yearBuilt > 0 ? form.yearBuilt : undefined,
+      houseRules: form.houseRules,
+      amenities: form.amenities,
+      floorPlanUrl: form.floorPlanUrl || undefined,
+      virtualTourUrl: form.virtualTourUrl || undefined,
       address: {
         street: form.street,
         city: form.city,
@@ -301,7 +333,7 @@ export default function NewListingPage() {
       const res = await fetch("/api/listings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ ...data, _draft: Boolean(opts.draft) }),
       });
       const result = await res.json();
       if (!res.ok) {
@@ -320,7 +352,11 @@ export default function NewListingPage() {
         });
       }
 
-      router.push(`/listings/${result.listing._id}`);
+      if (opts.draft) {
+        router.push("/dashboard/listings?filter=draft");
+      } else {
+        router.push(`/listings/${result.listing._id}`);
+      }
     } catch {
       setServerError("An unexpected error occurred");
     } finally {
@@ -469,6 +505,153 @@ export default function NewListingPage() {
                   <label htmlFor="totalFloors" className="block text-sm font-medium text-[var(--text-primary)] mb-1">Total Floors</label>
                   <input id="totalFloors" type="number" min={0} value={form.totalFloors} onChange={(e) => updateField("totalFloors", Number(e.target.value))}
                     className="w-full px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-navy-500" />
+                </div>
+              </div>
+
+              {/* Room counts */}
+              <div className="border-t border-[var(--border)] pt-4 mt-2 grid grid-cols-3 gap-3">
+                <div>
+                  <label htmlFor="bedroomsField" className="block text-sm font-medium text-[var(--text-primary)] mb-1">Bedrooms</label>
+                  <input id="bedroomsField" type="number" min={0} value={form.bedrooms} onChange={(e) => updateField("bedrooms", Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-navy-500" />
+                </div>
+                <div>
+                  <label htmlFor="bathroomsField" className="block text-sm font-medium text-[var(--text-primary)] mb-1">Bathrooms</label>
+                  <input id="bathroomsField" type="number" min={0} value={form.bathrooms} onChange={(e) => updateField("bathrooms", Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-navy-500" />
+                </div>
+                <div>
+                  <label htmlFor="bedsField" className="block text-sm font-medium text-[var(--text-primary)] mb-1">Beds</label>
+                  <input id="bedsField" type="number" min={0} value={form.beds} onChange={(e) => updateField("beds", Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-navy-500" />
+                </div>
+              </div>
+
+              {/* Lease terms */}
+              <div className="border-t border-[var(--border)] pt-4 mt-2">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">Lease terms</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor="leaseType" className="block text-sm font-medium text-[var(--text-primary)] mb-1">Lease type</label>
+                    <select id="leaseType" value={form.leaseType} onChange={(e) => updateField("leaseType", e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)]">
+                      <option value="open_ended">Open-ended</option>
+                      <option value="fixed_term">Fixed term</option>
+                      <option value="student_semester">Student semester</option>
+                      <option value="short_term">Short term</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-3 mt-6">
+                    <input id="utilitiesIncluded" type="checkbox" checked={form.utilitiesIncluded}
+                      onChange={(e) => updateField("utilitiesIncluded", e.target.checked)}
+                      className="w-4 h-4 rounded border-[var(--border)] text-navy-500 focus:ring-navy-500" />
+                    <label htmlFor="utilitiesIncluded" className="text-sm text-[var(--text-primary)]">Utilities included</label>
+                  </div>
+                  <div>
+                    <label htmlFor="minStay" className="block text-sm font-medium text-[var(--text-primary)] mb-1">Min stay (months)</label>
+                    <input id="minStay" type="number" min={0} value={form.minStayMonths} onChange={(e) => updateField("minStayMonths", Number(e.target.value))}
+                      className="w-full px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)]" />
+                  </div>
+                  <div>
+                    <label htmlFor="maxStay" className="block text-sm font-medium text-[var(--text-primary)] mb-1">Max stay (months)</label>
+                    <input id="maxStay" type="number" min={0} value={form.maxStayMonths} onChange={(e) => updateField("maxStayMonths", Number(e.target.value))}
+                      className="w-full px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)]" />
+                  </div>
+                  <div>
+                    <label htmlFor="depositField" className="block text-sm font-medium text-[var(--text-primary)] mb-1">Deposit</label>
+                    <input id="depositField" type="number" min={0} value={form.deposit} onChange={(e) => updateField("deposit", Number(e.target.value))}
+                      className="w-full px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)]" />
+                  </div>
+                  <div>
+                    <label htmlFor="billsEstimate" className="block text-sm font-medium text-[var(--text-primary)] mb-1">Bills estimate / mo</label>
+                    <input id="billsEstimate" type="number" min={0} value={form.billsEstimate} onChange={(e) => updateField("billsEstimate", Number(e.target.value))}
+                      className="w-full px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)]" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Efficiency */}
+              <div className="border-t border-[var(--border)] pt-4 mt-2 grid grid-cols-3 gap-3">
+                <div>
+                  <label htmlFor="heatingField" className="block text-sm font-medium text-[var(--text-primary)] mb-1">Heating</label>
+                  <select id="heatingField" value={form.heatingType} onChange={(e) => updateField("heatingType", e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)]">
+                    <option value="">—</option>
+                    <option value="central">Central</option>
+                    <option value="gas">Gas</option>
+                    <option value="electric">Electric</option>
+                    <option value="district">District</option>
+                    <option value="heatPump">Heat pump</option>
+                    <option value="woodStove">Wood stove</option>
+                    <option value="none">None</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="energyField" className="block text-sm font-medium text-[var(--text-primary)] mb-1">Energy rating</label>
+                  <select id="energyField" value={form.energyRating} onChange={(e) => updateField("energyRating", e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)]">
+                    <option value="">—</option>
+                    {["A", "B", "C", "D", "E", "F", "G"].map((r) => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="yearBuiltField" className="block text-sm font-medium text-[var(--text-primary)] mb-1">Year built</label>
+                  <input id="yearBuiltField" type="number" min={1800} max={new Date().getFullYear() + 2} value={form.yearBuilt}
+                    onChange={(e) => updateField("yearBuilt", Number(e.target.value))}
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)]" />
+                </div>
+              </div>
+
+              {/* Media URLs */}
+              <div className="border-t border-[var(--border)] pt-4 mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="floorPlanField" className="block text-sm font-medium text-[var(--text-primary)] mb-1">Floor plan URL (optional)</label>
+                  <input id="floorPlanField" type="url" value={form.floorPlanUrl}
+                    onChange={(e) => updateField("floorPlanUrl", e.target.value)}
+                    placeholder="https://…"
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)]" />
+                </div>
+                <div>
+                  <label htmlFor="virtualTourField" className="block text-sm font-medium text-[var(--text-primary)] mb-1">Virtual tour URL (optional)</label>
+                  <input id="virtualTourField" type="url" value={form.virtualTourUrl}
+                    onChange={(e) => updateField("virtualTourUrl", e.target.value)}
+                    placeholder="https://…"
+                    className="w-full px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text-primary)]" />
+                </div>
+              </div>
+
+              {/* House rules */}
+              <div className="border-t border-[var(--border)] pt-4 mt-2">
+                <h3 className="text-sm font-semibold text-[var(--text-primary)] mb-3">House rules</h3>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { v: "noSmoking", l: "No smoking" },
+                    { v: "noPets", l: "No pets" },
+                    { v: "noParties", l: "No parties" },
+                    { v: "quietHours", l: "Quiet hours" },
+                    { v: "overnightGuestsAllowed", l: "Overnight guests OK" },
+                    { v: "coupleFriendly", l: "Couple friendly" },
+                    { v: "studentsOnly", l: "Students only" },
+                    { v: "workingProfessionalsOnly", l: "Working professionals only" },
+                  ].map((r) => {
+                    const checked = form.houseRules.includes(r.v);
+                    return (
+                      <label key={r.v} className={`px-3 py-1.5 rounded-full text-xs cursor-pointer border ${checked ? "bg-navy-500 text-white border-navy-500" : "bg-[var(--surface)] text-[var(--text-primary)] border-[var(--border)]"}`}>
+                        <input
+                          type="checkbox"
+                          className="sr-only"
+                          checked={checked}
+                          onChange={(e) => {
+                            const next = e.target.checked
+                              ? [...form.houseRules, r.v]
+                              : form.houseRules.filter((x) => x !== r.v);
+                            setForm((prev) => ({ ...prev, houseRules: next }));
+                          }}
+                        />
+                        {r.l}
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -672,7 +855,7 @@ export default function NewListingPage() {
           )}
 
           {/* Navigation buttons */}
-          <div className="flex justify-between mt-6">
+          <div className="flex justify-between mt-6 gap-2">
             <button
               type="button"
               onClick={prevStep}
@@ -681,17 +864,27 @@ export default function NewListingPage() {
             >
               Back
             </button>
-            {stepIndex < STEPS.length - 1 ? (
-              <button type="button" onClick={nextStep}
-                className="px-6 py-2 rounded-lg bg-navy-600 hover:bg-navy-700 text-white font-medium transition-colors">
-                Next
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => handleSubmit({ draft: true })}
+                disabled={isLoading || !form.title}
+                className="px-4 py-2 rounded-lg border border-[var(--border)] text-[var(--text-primary)] hover:bg-[var(--background-secondary)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Save as Draft
               </button>
-            ) : (
-              <button type="button" onClick={handleSubmit} disabled={isLoading}
-                className="px-6 py-2 rounded-lg bg-navy-600 hover:bg-navy-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                {isLoading ? "Creating…" : "Create Listing"}
-              </button>
-            )}
+              {stepIndex < STEPS.length - 1 ? (
+                <button type="button" onClick={nextStep}
+                  className="px-6 py-2 rounded-lg bg-navy-600 hover:bg-navy-700 text-white font-medium transition-colors">
+                  Next
+                </button>
+              ) : (
+                <button type="button" onClick={() => handleSubmit()} disabled={isLoading}
+                  className="px-6 py-2 rounded-lg bg-navy-600 hover:bg-navy-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                  {isLoading ? "Creating…" : "Create Listing"}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>

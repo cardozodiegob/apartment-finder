@@ -15,6 +15,7 @@ const mockLogout = vi.fn();
 const mockRequestPasswordReset = vi.fn();
 const mockVerifyEmail = vi.fn();
 const mockGetSession = vi.fn();
+const mockGetSessionUser = vi.fn();
 
 vi.mock("@/lib/services/auth", () => ({
   register: (...args: unknown[]) => mockRegister(...args),
@@ -23,6 +24,10 @@ vi.mock("@/lib/services/auth", () => ({
   requestPasswordReset: (...args: unknown[]) => mockRequestPasswordReset(...args),
   verifyEmail: (...args: unknown[]) => mockVerifyEmail(...args),
   getSession: () => mockGetSession(),
+}));
+
+vi.mock("@/lib/api/session", () => ({
+  getSessionUser: () => mockGetSessionUser(),
 }));
 
 // Mock supabase modules to prevent import errors
@@ -253,40 +258,37 @@ describe("POST /api/auth/verify-email", () => {
 describe("GET /api/auth/session", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("returns session data when authenticated", async () => {
-    mockGetSession.mockResolvedValue({
-      session: {
-        user: { id: "u3", email: "session@example.com" },
-        expires_at: 1700000000,
-      },
-      error: null,
+  it("returns user data when authenticated", async () => {
+    mockGetSessionUser.mockResolvedValue({
+      supabaseId: "u3",
+      mongoId: "mongo-u3",
+      email: "session@example.com",
+      fullName: "Test User",
+      role: "seeker",
+      isSuspended: false,
     });
 
     const res = await sessionRoute();
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.session.user.id).toBe("u3");
-    expect(body.session.expiresAt).toBe(1700000000);
+    expect(body.user.id).toBe("u3");
+    expect(body.user.email).toBe("session@example.com");
+    expect(body.user.mongoId).toBe("mongo-u3");
   });
 
   it("returns 401 when no session exists", async () => {
-    mockGetSession.mockResolvedValue({ session: null, error: null });
+    mockGetSessionUser.mockResolvedValue(null);
 
     const res = await sessionRoute();
     expect(res.status).toBe(401);
     const body = await res.json();
-    expect(body.session).toBeNull();
+    expect(body.user).toBeNull();
   });
 
   it("returns 500 on session error", async () => {
-    mockGetSession.mockResolvedValue({
-      session: null,
-      error: "Not authenticated",
-    });
+    mockGetSessionUser.mockRejectedValue(new Error("db down"));
 
     const res = await sessionRoute();
     expect(res.status).toBe(500);
-    const body = await res.json();
-    expect(body.code).toBe("SESSION_ERROR");
   });
 });

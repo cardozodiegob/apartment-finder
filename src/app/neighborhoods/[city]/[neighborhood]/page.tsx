@@ -15,6 +15,7 @@ interface Guide {
   overview: string;
   transitScore?: number;
   transitInfo?: string;
+  transitLines?: string[];
   safetyInfo?: string;
   amenities?: { supermarkets: string[]; pharmacies: string[]; schools: string[]; parks: string[] };
   averageRent?: number;
@@ -124,6 +125,18 @@ export default function NeighborhoodGuidePage() {
                 {guide.transitInfo && (
                   <div className="text-sm text-[var(--text-primary)] prose dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: guide.transitInfo }} />
                 )}
+                {guide.transitLines && guide.transitLines.length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-xs text-[var(--text-muted)] mb-1">Lines</p>
+                    <div className="flex flex-wrap gap-1">
+                      {guide.transitLines.map((line) => (
+                        <span key={line} className="px-2 py-0.5 text-xs rounded-full bg-[var(--background-secondary)] text-[var(--text-primary)]">
+                          {line}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -182,6 +195,30 @@ export default function NeighborhoodGuidePage() {
             </div>
           </div>
         </div>
+
+        {/* JSON-LD Place */}
+        <script
+          type="application/ld+json"
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Place",
+              name: `${guide.neighborhood}, ${guide.city}`,
+              description: guide.overview?.replace(/<[^>]+>/g, "").slice(0, 300),
+              geo: {
+                "@type": "GeoCoordinates",
+                latitude: guide.centerLat,
+                longitude: guide.centerLng,
+              },
+              address: {
+                "@type": "PostalAddress",
+                addressLocality: guide.city,
+                addressRegion: guide.neighborhood,
+              },
+            }),
+          }}
+        />
       </div>
     </div>
   );
