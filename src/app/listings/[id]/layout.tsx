@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import dbConnect from "@/lib/db/connection";
 import Listing from "@/lib/db/models/Listing";
+import { firstPhotoUrl, photoUrls, type PhotoValue } from "@/lib/listings/photoUrl";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://apartmentfinder.com";
 
@@ -20,7 +21,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const title = `${listing.title} — ${listing.address.city} | ApartmentFinder`;
     const description = `${listing.propertyType} for ${listing.purpose} in ${listing.address.city}, ${listing.address.country}. ${listing.currency} ${listing.monthlyRent}/month.`;
     const url = `${BASE_URL}/listings/${id}`;
-    const image = listing.photos?.[0] || `${BASE_URL}/file.svg`;
+    const image = firstPhotoUrl(listing.photos as PhotoValue[]) || `${BASE_URL}/file.svg`;
+    const allImages = photoUrls(listing.photos as PhotoValue[]);
 
     const jsonLd = {
       "@context": "https://schema.org",
@@ -28,7 +30,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       name: listing.title,
       description: listing.description,
       url,
-      image: listing.photos,
+      image: allImages.length > 0 ? allImages : [image],
       offers: {
         "@type": "Offer",
         price: listing.monthlyRent,
@@ -52,6 +54,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return {
       title,
       description,
+      alternates: {
+        canonical: url,
+      },
       openGraph: {
         title,
         description,

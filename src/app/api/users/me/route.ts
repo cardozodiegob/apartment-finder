@@ -24,11 +24,20 @@ export async function PUT(request: NextRequest) {
 
     const allowedFields = [
       "fullName", "bio", "phone", "dateOfBirth", "nationality", "idType", "idNumber",
+      "languagesSpoken",
     ];
     const updates: Record<string, unknown> = {};
     for (const field of allowedFields) {
       if (body[field] !== undefined) {
         updates[field] = body[field];
+      }
+    }
+
+    // Validate languagesSpoken shape
+    if (updates.languagesSpoken !== undefined) {
+      if (!Array.isArray(updates.languagesSpoken) ||
+          !updates.languagesSpoken.every((l) => typeof l === "string")) {
+        throw new ApiErrorResponse("VALIDATION_ERROR", "languagesSpoken must be an array of strings", 400);
       }
     }
 

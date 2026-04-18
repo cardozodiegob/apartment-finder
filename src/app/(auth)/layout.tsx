@@ -5,7 +5,7 @@ import { useTheme } from "@/lib/context/ThemeContext";
 import { LogoIcon } from "@/components/icons";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
-  const { theme, toggleTheme } = useTheme();
+  const { resolvedTheme, toggleTheme } = useTheme();
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12 bg-[var(--background)] transition-colors duration-300">
@@ -13,9 +13,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <button
           onClick={toggleTheme}
           className="p-2 rounded-lg glass-sm text-[var(--text-primary)] hover:opacity-80 transition-opacity"
-          aria-label={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+          aria-label={`Switch to ${resolvedTheme === "light" ? "dark" : "light"} mode`}
         >
-          {theme === "light" ? (
+          {resolvedTheme === "light" ? (
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
             </svg>

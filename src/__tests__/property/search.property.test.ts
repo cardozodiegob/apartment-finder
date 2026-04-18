@@ -43,6 +43,8 @@ const listingArb = fc.record({
   tags: fc.array(fc.stringMatching(/^[a-z]{2,8}$/), { maxLength: 5 }),
   isSharedAccommodation: fc.boolean(),
   availableRooms: fc.integer({ min: 0, max: 5 }),
+  bedrooms: fc.integer({ min: 0, max: 5 }),
+  bathrooms: fc.integer({ min: 0, max: 3 }),
   status: fc.constant("active" as const),
   address: fc.record({
     street: fc.constant("Test St"),
@@ -67,7 +69,13 @@ function listingMatchesFilters(listing: Record<string, unknown>, params: Partial
     if (rent < params.priceRange.min || rent > params.priceRange.max) return false;
   }
   if (params.bedrooms !== undefined && params.bedrooms !== null) {
-    if ((listing.availableRooms as number) < params.bedrooms) return false;
+    if ((listing.bedrooms as number) < params.bedrooms) return false;
+  }
+  if (params.bathrooms !== undefined && params.bathrooms !== null) {
+    if ((listing.bathrooms as number) < params.bathrooms) return false;
+  }
+  if (params.availableRooms !== undefined && params.availableRooms !== null) {
+    if ((listing.availableRooms as number) < params.availableRooms) return false;
   }
   if (params.tags && params.tags.length > 0) {
     const listingTags = listing.tags as string[];

@@ -3,6 +3,8 @@ import { update, getById, deleteListing } from "@/lib/services/listings";
 import { updateListingSchema } from "@/lib/validations/listing";
 import { requireActiveUser, getSessionUser } from "@/lib/api/session";
 import { isFavorited } from "@/lib/services/favorites";
+import { getPosterCard } from "@/lib/services/posterCard";
+import { recordListingView } from "@/lib/services/viewCounter";
 import { ApiErrorResponse, errorResponse } from "@/lib/api/errors";
 import dbConnect from "@/lib/db/connection";
 
@@ -56,7 +58,25 @@ export async function GET(
       );
     }
 
+    // Record a view (skip drafts + the owner's own views)
+    const listingPosterId = (result.listing as { posterId?: { toString: () => string } }).posterId;
+    if (
+      result.listing.status !== "draft" &&
+      (!sessionUser || listingPosterId?.toString() !== sessionUser.mongoId)
+    ) {
+      const ip = _request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+        _request.headers.get("x-real-ip") ?? "anon";
+      const viewer = sessionUser?.mongoId ?? ip;
+      try { await recordListingView(id, viewer); } catch { /* ignore */ }
+    }
+
     const response: Record<string, unknown> = { listing: result.listing };
+
+    // Wire poster card
+    const posterId = (result.listing as { posterId?: { toString: () => string } }).posterId;
+    if (posterId) {
+      response.poster = await getPosterCard(posterId.toString());
+    }
 
     if (sessionUser) {
       response.isFavorited = await isFavorited(sessionUser.mongoId, id);

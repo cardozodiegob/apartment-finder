@@ -14,6 +14,7 @@ export interface INeighborhoodGuide extends Document {
   overview: string;
   transitScore?: number;
   transitInfo?: string;
+  transitLines?: string[];
   safetyInfo?: string;
   amenities?: IAmenities;
   averageRent?: number;
@@ -43,6 +44,7 @@ const NeighborhoodGuideSchema = new Schema<INeighborhoodGuide>(
     overview: { type: String, default: "" },
     transitScore: { type: Number, min: 0, max: 100 },
     transitInfo: { type: String },
+    transitLines: { type: [String], default: [] },
     safetyInfo: { type: String },
     amenities: { type: AmenitiesSchema },
     averageRent: { type: Number, min: 0 },

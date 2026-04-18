@@ -40,7 +40,16 @@ export interface IUser extends Document {
   idType?: "national_id" | "passport" | "residence_permit";
   idNumber?: string;
   idVerified?: boolean;
+  emailVerified?: boolean;
+  phoneVerified?: boolean;
   profileCompleted?: boolean;
+  languagesSpoken?: string[];
+  responseMetrics?: {
+    rate?: number;        // 0..1
+    timeHours?: number;   // mean hours to first reply (trailing 90-day window)
+    windowStartAt?: Date; // start of the metrics window
+    sampleSize?: number;
+  };
   notificationPreferences: INotificationPreferences;
   createdAt: Date;
   updatedAt: Date;
@@ -103,7 +112,21 @@ const UserSchema = new Schema<IUser>(
     idType: { type: String, enum: ["national_id", "passport", "residence_permit"] },
     idNumber: { type: String },
     idVerified: { type: Boolean, default: false },
+    emailVerified: { type: Boolean, default: false },
+    phoneVerified: { type: Boolean, default: false },
     profileCompleted: { type: Boolean, default: false },
+    languagesSpoken: { type: [String], default: [] },
+    responseMetrics: {
+      type: new Schema(
+        {
+          rate: { type: Number, min: 0, max: 1 },
+          timeHours: { type: Number, min: 0 },
+          windowStartAt: { type: Date },
+          sampleSize: { type: Number, min: 0 },
+        },
+        { _id: false },
+      ),
+    },
     notificationPreferences: {
       type: NotificationPreferencesSchema,
       default: () => ({}),

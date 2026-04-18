@@ -1,0 +1,335 @@
+# Implementation Plan
+
+## Overview
+
+Phased plan matching the P0 → P4 prioritisation in `requirements.md`. Each phase is sized so a single sprint of the virtual-team-sprint-runner (1–2 hours with a decent LLM budget) can realistically complete it. Safety-critical steps — schema migrations, theme refactor, SSR conversions — get explicit verification tasks.
+
+Starred (`*`) tasks are optional or deferrable (tests beyond the PBT-required properties, polish work).
+
+Language: TypeScript throughout.
+
+## Tasks
+
+<!-- Phase 0 — P0 critical bugs, fix-forward without touching anything else -->
+
+- [ ] 1. Phase 0 — critical bug fixes
+  - [x] 1.1 Build the unified Theme_System
+    - Create `src/components/providers/ThemeBootstrap.tsx` exporting a server component that inlines a synchronous `<script>` reading `localStorage["theme"]` + `prefers-color-scheme` and applying the `dark` class before hydration
+    - Refactor `src/lib/context/ThemeContext.tsx` to export `theme`, `resolvedTheme`, `setTheme(next)` and remove the `apartment-finder-theme` localStorage key
+    - Mount `<ThemeBootstrap />` inside `<head>` of `src/app/layout.tsx` and wrap children in `<ThemeProvider>`
+    - _Requirements: 1_
+  - [x]* 1.2 Property test `nextTheme(stored, prefersDark)` is pure
+    - File: `src/__tests__/property/theme.property.test.ts`
+    - **Property 1: Theme resolution is pure**
+    - _Validates: Requirement 1_
+  - [x] 1.3 Remove the local `darkMode` state from the Navbar and the Settings page
+    - Edit `src/components/layout/Navbar.tsx` — replace lines 26-34 (useEffect hydration reader) and lines 71-76 (toggleTheme) with `useTheme()`
+    - Edit `src/app/dashboard/settings/page.tsx` — remove local `darkMode` state + `handleThemeToggle`, consume `useTheme()` instead
+    - _Requirements: 1_
+  - [x] 1.4 Fix bedroom-filter semantics
+    - Add `bedrooms` + `bathrooms` to the Listing Mongoose model with the migration note (backfill nullable)
+    - Update `src/lib/services/search.ts` `buildQuery` so `bedrooms` maps to `$gte` on the new `bedrooms` field, not `availableRooms`
+    - Update `src/app/search/page.tsx` filter UI: rename the Bedrooms input, add a minimum-bathrooms selector, and add a "Rooms available" input visible only when "Shared accommodation" is checked
+    - _Requirements: 4_
+  - [x]* 1.5 Property test for bedroom/availableRooms independence
+    - File: `src/__tests__/property/search-bedrooms.property.test.ts`
+    - **Property 3: Bedroom filter semantics**
+    - _Validates: Requirement 4_
+  - [x] 1.6 Country-dependent city filter
+    - Extract the Nominatim-backed city autocomplete from `src/app/listings/new/page.tsx` into `src/lib/services/geography.ts` (`citiesForCountry`, `autocompleteCity`, exported `EUROPEAN_COUNTRIES` + `COUNTRY_CODES`)
+    - Remove the hardcoded `CITIES = [...]` array in `src/app/search/page.tsx`
+    - Replace the city `<select>` with a country-scoped autocomplete input mirroring `listings/new`'s city input
+    - Clear the city value when the country changes
+    - Cache country→cities lookups in `sessionStorage` for 24 hours
+    - _Requirements: 2_
+  - [x]* 1.7 Property test for city-scoping monotonicity
+    - File: `src/__tests__/property/geography.property.test.ts`
+    - **Property 2: City filter monotonic in country selection**
+    - _Validates: Requirement 2_
+  - [x] 1.8 Unify the session shape
+    - Update `/api/auth/session` route.ts to return exactly `{ user: SessionUser | null }` (no `session.user` nesting)
+    - Delete the `SessionUser` interface redeclaration in `src/components/layout/Navbar.tsx` and import from `@/lib/api/session`
+    - Audit every other consumer (`src/app/admin/sprints/*`, `src/app/dashboard/*`, `src/app/users/[id]/page.tsx`) and update to the unified shape
+    - _Requirements: 10_
+  - [x] 1.9 Fix dark-mode render on the profile page + small bugs
+    - Replace `bg-white border` in `src/app/users/[id]/page.tsx` lines 160-240 with `glass-card` / `bg-[var(--surface)] border border-[var(--border)]`
+    - Replace the `placehold.co` avatar fallback with a local SVG component rendering an initial
+    - Add `aria-label="<N> out of 5 stars"` to review stars
+    - Hide the listing detail "Edit" button when the session user isn't the owner OR admin
+    - _Requirements: 15, 19, 25_
+  - [ ] 1.10 Checkpoint — Phase 0 must be green in Playwright + axe
+    - Run the sprint runner; the retrospective must report 0 WCAG violations on profile + listing + navbar, and theme toggle must work in both directions without FOUC
+
+<!-- Phase 1 — core data model and poster-card fixes -->
+
+- [ ] 2. Phase 1 — listing data model and poster card
+  - [x] 2.1 Amenity_Vocabulary module
+    - Create `src/lib/constants/amenities.ts` exporting `AMENITIES` const tuple, `Amenity` union type, `AMENITY_LABEL_KEYS` → next-intl keys, `AMENITY_ICON` map
+    - Add i18n keys in `messages/en.json` etc. for every amenity
+    - _Requirements: 5_
+  - [x] 2.2 Extend the Listing Mongoose model + Zod schema
+    - Add: `bathrooms`, `beds`, `deposit`, `utilitiesIncluded`, `billsEstimate`, `minStayMonths`, `maxStayMonths`, `leaseType` (required, default `"open_ended"`), `heatingType`, `energyRating`, `yearBuilt`, `amenities`, `houseRules`, `nearbyTransit`, `nearbyAmenities`, `floorPlanUrl`, `virtualTourUrl`, `verifiedAt`, `verifiedBy`, `verificationTier`, `viewCount`, `inquiryCount`
+    - Migrate `photos: string[]` to `photos: {url, order, caption?, alt?}[]` — write a one-time migration script at `scripts/migrate-photos.ts`
+    - Update `src/lib/validations/listing.ts` Zod schemas to match
+    - Add compound indexes per Requirement 3.15
+    - _Requirements: 3, 45, 48, 51_
+  - [x]* 2.3 Unit tests for listing Zod schema edge cases
+    - File: `src/lib/validations/__tests__/listing.test.ts` (new)
+    - Cover: `minStay > maxStay` rejection, mutually exclusive house rules, invalid energy-rating value
+    - _Requirements: 3, 48_
+  - [x]* 2.4 Property test — amenity filter set-inclusion
+    - File: `src/__tests__/property/search-amenities.property.test.ts`
+    - **Property 4: Amenity filter is set-inclusion**
+    - _Validates: Requirement 5_
+  - [x] 2.5 Wire the poster card on the listing detail page
+    - Replace the hardcoded "P" placeholder block (lines 197-213 of `src/app/listings/[id]/page.tsx`) with a fetched poster card
+    - Extend `/api/listings/[id]` to populate `posterId` with name, photo, trust score, badges, languages, member-since, response metrics
+    - Render the full card using the existing card pattern; add a "Message <firstName>" CTA
+    - _Requirements: 20_
+  - [x] 2.6 Breadcrumbs, save/share/report action icons, edit-button visibility
+    - Add breadcrumb bar to `src/app/listings/[id]/page.tsx`
+    - Add heart / share / flag icons near the title with keyboard a11y
+    - Share menu: "Copy link", "WhatsApp", "Email", "X"
+    - _Requirements: 22, 24, 25_
+  - [x] 2.7 Listing detail facts + price breakdown
+    - Add "Facts" section rendering every new Requirement-3 field present on the listing
+    - Add price-breakdown block in the sidebar when `deposit` OR `billsEstimate` is set
+    - _Requirements: 3.19, 23_
+  - [x] 2.8 Energy-rating badge component
+    - Create `src/components/listings/EnergyRatingBadge.tsx` rendering the coloured A-G chip with WCAG-AA-compliant contrast
+    - Use it in the listing detail and the search-result card
+    - Add energy-rating filter to the search page
+    - _Requirements: 6_
+  - [x]* 2.9 Property test — energy rating ordering
+    - File: `src/__tests__/property/search-energy.property.test.ts`
+    - **Property 5: Energy rating filter order**
+    - _Validates: Requirement 6_
+  - [x] 2.10 Photo gallery component
+    - Create `src/components/listings/PhotoGallery.tsx` — thumbnail strip + lightbox + keyboard/swipe/Escape/lazy-load
+    - Replace the current single-img + dots pattern on the listing detail page
+    - Render floor plan and virtual tour as extra tabs when URLs set
+    - _Requirements: 21_
+  - [x] 2.11 Similar listings endpoint + section
+    - Create `/api/listings/similar?listingId=<id>` returning 6 matches by same city, same property type, ±30% price
+    - Render below the main content on the listing detail page
+    - _Requirements: 26_
+  - [ ] 2.12 Checkpoint — Phase 1 green
+    - Run sprint runner; retrospective must show 0 criticals + 0 highs across the listing detail page + poster card
+
+<!-- Phase 2 — navbar, search, favorites, messaging -->
+
+- [ ] 3. Phase 2 — navbar + search + favorites + messaging
+  - [x] 3.1 Navbar bell → NotificationPanel
+    - Wire the bell onClick to open `NotificationPanel`
+    - Add a red unread-count badge, polling `/api/notifications?countOnly=true` every 60s while visible
+    - _Requirements: 7, 12_
+  - [x] 3.2 Navbar admin chip, sign-out confirmation, accessibility fixes
+    - Inline "Admin" chip on avatar for role=admin
+    - Confirmation dialog on sign-out
+    - `role="menu"/"menuitem"`, arrow-key nav, Escape closes, focus trap
+    - _Requirements: 8, 13, 14_
+  - [x] 3.3 Navbar search trigger + poster CTA
+    - Desktop: compact magnifier + placeholder → opens a command-palette-style overlay
+    - Mobile: magnifier navigates to /search
+    - Poster "Post a Listing" primary CTA; seeker "List your place" secondary
+    - _Requirements: 11, 9_
+  - [x] 3.4 Search sort + active-filter chips + furnished tri-state + results-per-page + empty-state suggestions
+    - Sort dropdown (Newest, Price asc/desc, Available soonest, Relevance)
+    - Chip row with × to remove individual filters
+    - Replace furnished checkbox with 3-way segmented
+    - `?limit=20|50|100` selector
+    - Zero-result suggestions: widen price, drop neighborhood, drop keyword
+    - _Requirements: 29, 32, 37, 31, 36_
+  - [x]* 3.5 Property test — furnished tri-state
+    - File: `src/__tests__/property/search-furnished.property.test.ts`
+    - **Property 6: Furnished tri-state**
+    - _Validates: Requirement 37_
+  - [x] 3.6 Search — price per m² + map/list toggle
+    - Per-m² badge on every card when `floorArea > 0`
+    - 3-way segmented: List | Map | Split (default Split on ≥ 1280 px)
+    - Persist choice in `sessionStorage`
+    - _Requirements: 30, 38_
+  - [x] 3.7 Map clustering
+    - Install `leaflet.markercluster`
+    - Update `src/components/search/MapView.tsx` to use `markerClusterGroup`
+    - _Requirements: 33_
+  - [x] 3.8 Recently viewed strip + trending strip
+    - Track viewed listings in `localStorage["recentlyViewedListings"]`
+    - Render both strips above the results
+    - Cron to populate `listing.trendingScore` daily
+    - _Requirements: 34, 66_
+  - [x] 3.9 Saved-search email alerts
+    - Extend SavedSearch model with `emailAlertsEnabled` + `lastAlertedAt`
+    - Add the checkbox to the save-search modal
+    - Create `/api/saved-searches/cron/route.ts` protected by a shared secret
+    - Implement the email pipeline using the existing email service + i18n
+    - _Requirements: 35_
+  - [x] 3.10 Favorites — folders, notes, sharing, price-drop badge
+    - Extend Favorite model with `folderName` + `note`
+    - Rework `/dashboard/favorites/page.tsx` with folder sidebar + multi-select + bulk move
+    - Add `GET /api/favorites/share/[token]` for shared read-only folders
+    - Render "Price dropped" badge from `listing.priceHistory`
+    - _Requirements: 52_
+  - [x]* 3.11 Property test — favorite folder idempotency
+    - File: `src/__tests__/property/favorites.property.test.ts`
+    - **Property 7: Favorite folder operations are idempotent**
+    - _Validates: Requirement 52_
+  - [x] 3.12 Messaging — translation, attachments, thread polish
+    - Translation: `/api/messages/translate` + button below each message + `MessageTranslation` cache collection
+    - Attachment: Supabase Storage upload from composer; render thumbnails + file chips
+    - Read receipts from existing `readBy` map
+    - Thread list shows other participant's avatar + language flags
+    - "Mark as scam" quick action → admin scam-review queue
+    - Replace emoji empty-state with SVG icon
+    - Enter-to-send, Shift+Enter for newline
+    - _Requirements: 53_
+  - [ ] 3.13 Checkpoint — Phase 2 green
+    - Sprint runner must find 0 criticals/highs on navbar, search, favorites, messages
+
+<!-- Phase 3 — profile + homepage + listing creation polish -->
+
+- [ ] 4. Phase 3 — profile, homepage, listing creation
+  - [x] 4.1 Profile — response metrics + verification badges + languages + histogram
+    - Compute `responseRate` and `responseTimeHours` over a trailing 90-day window; cache on `user.responseMetrics`
+    - Add badge set: ID verified, Email verified, Phone verified, Landlord since <year>, <N> transactions
+    - User model gains `languagesSpoken: string[]`; settings page multi-select
+    - Render a 5-bar review histogram
+    - Update `/api/users/[id]/profile` response payload
+    - _Requirements: 16, 17, 18, 19_
+  - [x]* 4.2 Property test — trust metric windowing
+    - File: `src/__tests__/property/trust-metrics.property.test.ts`
+    - **Property 9: Trust metric windowing**
+    - _Validates: Requirement 16_
+  - [x] 4.3 Homepage — SSR + hero search + popular cities + trust strip + blog strip
+    - Remove `"use client"` from `src/app/page.tsx`; move interactive bits into client islands
+    - Hero search form submitting to `/search?...`
+    - Popular cities grid with server-side aggregation cached 30 min
+    - 3-step "How it works" + 3 latest blog strip
+    - Hero3D behind reduced-motion + viewport gate
+    - _Requirements: 39, 40, 41, 42, 43_
+  - [x] 4.4 Listing detail — server-render with client islands
+    - Convert `src/app/listings/[id]/page.tsx` to a server component; keep the photo gallery, viewing form, share menu, heart as client islands
+    - Add JSON-LD, canonical, hreflang
+    - _Requirements: 39, 56_
+  - [x] 4.5 Nearby transit + amenities auto-populate on listing creation + display on detail
+    - Use Overpass (OpenStreetMap) to fetch transit and amenities around the listing lat/lng
+    - Admin-editable before save
+    - Detail page renders as labelled rows
+    - _Requirements: 27, 49_
+  - [x] 4.6 Larger detail map + nearby overlays + 500m-privacy circle
+    - Replace `aspect-square` sidebar map with a 400×400 minimum block
+    - Full-screen map modal with nearby overlays
+    - Privacy: show 500 m circle around pin unless the seeker has a booking
+    - _Requirements: 28_
+  - [x] 4.7 Listing creation — save as draft + rich text + photo reorder + captions + alt text + live preview
+    - "Save as Draft" button on every step of the wizard
+    - ProseMirror/TipTap editor for description with sanitized HTML output
+    - Drag-to-reorder photos with cover marker
+    - Caption + alt-text inputs per photo
+    - Live preview pane on the final step
+    - _Requirements: 44, 45, 46, 47, 51_
+  - [x] 4.8 Listing creation — house rules + lease terms + virtual tour / floor plan URLs
+    - House rules multi-select with Zod-enforced non-conflict
+    - Lease terms block (leaseType, minStay, maxStay, utilitiesIncluded, deposit)
+    - Virtual tour + floor plan URL inputs or Supabase Storage upload
+    - _Requirements: 48, 50_
+  - [ ] 4.9 Checkpoint — Phase 3 green
+    - Sprint runner must confirm LCP < 2.5 s on homepage + listing detail in the Lighthouse step
+
+<!-- Phase 4 — trust brand + growth -->
+
+- [ ] 5. Phase 4 — trust brand, verification, documents, footer
+  - [x] 5.1 Feature flag service
+    - New `FeatureFlag` Mongoose model
+    - `isFeatureEnabled(name, userId?)` server helper + `useFeatureFlag(name)` client hook
+    - `/admin/feature-flags` admin page
+    - _Requirements: 58, 67_
+  - [x]* 5.2 Property test — feature-flag determinism
+    - File: `src/__tests__/property/feature-flags.property.test.ts`
+    - **Property 11: Feature-flag evaluation is deterministic per user**
+    - _Validates: Requirement 58_
+  - [x] 5.3 Move-in guarantee branding
+    - `/move-in-guarantee` marketing page
+    - Shield badge on listing detail near the price
+    - 48-hour dispute window: in-app notification at move-in, freeze-on-dispute, auto-release on timeout
+    - _Requirements: 59_
+  - [x]* 5.4 Property test — move-in timer monotonicity
+    - File: `src/__tests__/property/move-in-guarantee.property.test.ts`
+    - **Property 12: Move-in guarantee timer monotonicity**
+    - _Validates: Requirement 59_
+  - [x] 5.5 Seeker KYC integration
+    - Pick provider via `KYC_PROVIDER` env var (Stripe Identity as the default)
+    - Settings page "Verify identity" button
+    - Webhook handler that sets `user.idVerified = true`
+    - Admin manual-override path
+    - Search filter "Verified posters only"
+    - _Requirements: 60_
+  - [x] 5.6 Listing verification (virtual tier)
+    - Admin "Verify listing" action on `/admin/listings` — form for `verificationTier`, notes, timestamp
+    - Badge on listing detail and search card
+    - Search filter "Verified listings only"
+    - AuditLog entry on every verify action
+    - _Requirements: 61_
+  - [x]* 5.7 Property test — verification monotonicity
+    - File: `src/__tests__/property/listing-verification.property.test.ts`
+    - **Property 10: Listing verification is monotonic**
+    - _Validates: Requirement 61_
+  - [x] 5.8 Documents — categories + poster-request flow
+    - Extend existing TenantDocument work (from `competitive-feature-parity` spec) with `category` enum
+    - Poster-request-documents composer action; seeker inline CTAs in thread
+    - _Requirements: 62_
+  - [x] 5.9 Neighborhood guide — transit lines + listings grid
+    - Extend NeighborhoodGuide model with `transitLines`
+    - Render 6-listing grid below guide content
+    - JSON-LD `Place` structured data
+    - _Requirements: 63_
+  - [x] 5.10 Response-time SLA nudges + view/inquiry counters + saved-search insights
+    - Cron: flag posters with `responseRate < 50%` or `responseTimeHours > 48h`; send nudge email + in-app
+    - Increment `viewCount` server-side per `(userOrIpHash, day)`
+    - Increment `inquiryCount` on new thread creation
+    - Poster dashboard: counters + WoW arrows
+    - Admin analytics: saved-search insights widget + CSV export
+    - _Requirements: 64, 65, 68_
+  - [x] 5.11 Footer — social + newsletter + popular cities + trust badge
+    - Popular cities column
+    - Newsletter signup form + `/api/newsletter/subscribe` endpoint
+    - Social icons + siteLinks constants
+    - SSL + EU data residency text
+    - _Requirements: 54_
+  - [ ] 5.12 Checkpoint — Phase 4 green
+    - Sprint runner: the DevOps agent must surface no regressions in Lighthouse; the security_engineer must pass the diff review on all new routes
+
+<!-- Phase 5 — platform polish -->
+
+- [ ] 6. Phase 5 — accessibility, SEO, performance, observability
+  - [x] 6.1 Accessibility sweep
+    - Focus traps + Escape on navbar dropdown, mobile drawer, save-search modal, filter drawer
+    - aria-labels on review stars
+    - Descriptive alt text on avatars
+    - Labels on every form input (audit pass)
+    - _Requirements: 55_
+  - [x] 6.2 SEO — dynamic sitemap segmentation + hreflang + JSON-LD for neighborhoods + homepage structured data
+    - Split sitemap into `sitemap-listings.xml`, `sitemap-blog.xml`, `sitemap-neighborhoods.xml`
+    - hreflang on every locale-routed page
+    - `Place` on neighborhood pages
+    - `Organization`, `WebSite`+`SearchAction` on homepage
+    - _Requirements: 56_
+  - [x] 6.3 Performance budget + sprint-runner gates
+    - Configure the DevOps sprint agent to fail sprints when any of `/`, `/search`, `/listings/<id>`, `/users/<id>` score < 90 on Performance
+    - Document the LCP < 2.5 s and INP < 200 ms targets in `SPRINT_RUNBOOK.md`
+    - _Requirements: 57_
+  - [x] 6.4 Observability — structured logger + error tracker
+    - Replace console.warn/error in server code paths with the existing logger
+    - Integrate GlitchTip (or Sentry) via env-gated init
+    - Surface an `/admin/errors` page pulling last 50 unhandled errors
+    - _Requirements: 58_
+  - [x] 6.5 Final checkpoint
+    - Full sprint run across the updated codebase; success bar per `success-bar.ts` thresholds must be met; retrospective must list zero regressions vs. the previous completed sprint
+
+## Notes
+
+- Safety: every Listing model change ships behind a feature flag (`listing-v2-schema`) so the new detail page only renders the extended fields for listings that opted in via a creation-form update. Legacy listings keep rendering the old card layout.
+- Migration: `scripts/migrate-photos.ts` runs once to convert `string[]` photos to the new `{url, order}[]` shape. Make it idempotent (checks if already an object) so it can be re-run safely.
+- Rollout: Phases 0 and 1 are deployed together (no feature flags). Phases 2+ each run behind their own flag.
+- Dependencies: Requirement 2 (country-dependent cities) must come before Requirement 41 (popular cities grid). Requirement 3 (listing model) must come before Requirements 5, 6, 21, 23. Requirement 58 (feature flags) is a prerequisite for Phases 2+ if incremental rollout is desired, but the whole spec ships fine without flags at a small scale.
+- Integration with the sprint runner: this spec is exactly the kind of multi-phase work the virtual-team-sprint-runner was designed for. Each phase can be a sprint goal; the tech lead agent picks requirements, the devs implement, security_engineer reviews diffs, QA runs persona journeys, DevOps runs Lighthouse, tech_lead writes the retrospective.

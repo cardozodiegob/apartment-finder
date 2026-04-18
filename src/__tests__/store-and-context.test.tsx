@@ -292,10 +292,10 @@ import { LocaleProvider, useLocale } from "@/lib/context/LocaleContext";
 import { NotificationPanelProvider, useNotificationPanel } from "@/lib/context/NotificationPanelContext";
 
 function ThemeConsumer() {
-  const { theme, toggleTheme } = useTheme();
+  const { resolvedTheme, toggleTheme } = useTheme();
   return (
     <div>
-      <span data-testid="theme">{theme}</span>
+      <span data-testid="theme">{resolvedTheme}</span>
       <button onClick={toggleTheme}>toggle</button>
     </div>
   );

@@ -24,7 +24,7 @@ interface FlaggedListing {
   address: Address;
   monthlyRent: number;
   currency: string;
-  photos: string[];
+  photos: (string | { url: string })[];
   scamRiskLevel: "medium" | "high";
   status: string;
   posterId: string;
@@ -211,17 +211,20 @@ export default function ScamReviewPage() {
                     {/* Photos with reverse image search */}
                     {listing.photos.length > 0 && (
                       <div className="flex gap-2 flex-wrap mb-2">
-                        {listing.photos.map((photo, i) => (
-                          <a
-                            key={i}
-                            href={`https://lens.google.com/uploadbyurl?url=${encodeURIComponent(photo)}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs underline text-blue-600 hover:text-blue-800"
-                          >
-                            Photo {i + 1} — reverse search
-                          </a>
-                        ))}
+                        {listing.photos.map((photo, i) => {
+                          const url = typeof photo === "string" ? photo : photo.url;
+                          return (
+                            <a
+                              key={i}
+                              href={`https://lens.google.com/uploadbyurl?url=${encodeURIComponent(url)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs underline text-blue-600 hover:text-blue-800"
+                            >
+                              Photo {i + 1} — reverse search
+                            </a>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
