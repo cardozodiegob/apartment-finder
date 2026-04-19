@@ -33,7 +33,6 @@ const BlogArticleSchema = new Schema<IBlogArticle>(
   { timestamps: true }
 );
 
-BlogArticleSchema.index({ slug: 1 }, { unique: true });
 BlogArticleSchema.index({ isPublished: 1, publishedAt: -1 });
 BlogArticleSchema.index({ category: 1, isPublished: 1 });
 
