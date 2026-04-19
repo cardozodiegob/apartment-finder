@@ -40,3 +40,4 @@ next-env.d.ts
 
 # Local diagnostic logs captured from docker compose
 docker-log.txt
+.env.docker
