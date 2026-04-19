@@ -21,12 +21,24 @@ ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# The Next build needs at least a dummy MONGODB_URI so that the import chain
-# parsed at build time doesn't crash. Real value comes in at runtime.
-ENV MONGODB_URI=mongodb://placeholder:27017/placeholder
-ENV NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co
-ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder-anon-key
-ENV SUPABASE_SERVICE_ROLE_KEY=placeholder-service-role-key
+# Build-time args for NEXT_PUBLIC_* vars. These MUST be provided at build time
+# because Next.js inlines `NEXT_PUBLIC_*` values into the client bundles during
+# `next build` — they can't be overridden at runtime. Defaults are placeholders
+# that let the build succeed when secrets aren't available (e.g. CI dry runs);
+# docker-compose.yml passes the real values from .env.docker.
+ARG NEXT_PUBLIC_SUPABASE_URL=https://placeholder.supabase.co
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder-anon-key
+ARG NEXT_PUBLIC_BASE_URL=http://localhost:3000
+ARG NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_placeholder
+
+# A dummy MONGODB_URI and SUPABASE_SERVICE_ROLE_KEY keep the import chain happy
+# during static-page generation. Real values arrive at runtime via compose env.
+ENV MONGODB_URI=mongodb://placeholder:27017/placeholder \
+    SUPABASE_SERVICE_ROLE_KEY=placeholder-service-role-key \
+    NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL} \
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY} \
+    NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL} \
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY}
 
 RUN npm run build
 
