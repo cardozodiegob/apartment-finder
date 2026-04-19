@@ -56,7 +56,6 @@ const NeighborhoodGuideSchema = new Schema<INeighborhoodGuide>(
   { timestamps: true }
 );
 
-NeighborhoodGuideSchema.index({ slug: 1 }, { unique: true });
 NeighborhoodGuideSchema.index({ city: 1, neighborhood: 1 }, { unique: true });
 NeighborhoodGuideSchema.index({ isPublished: 1 });
 
